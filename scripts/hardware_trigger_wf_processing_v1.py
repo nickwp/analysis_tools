@@ -135,9 +135,10 @@ if __name__ == "__main__":
     parser.add_argument("-o","--output_dir", help="Directory to write output file")
     parser.add_argument("--debug", action="store_true",help="Enable debug - disables checks allowing for test runs")
     
+    args = parser.parse_args()
+    
     git_hash = get_git_descriptor(debug = args.debug)
 
-    args = parser.parse_args()
 
     for input_file_name in args.input_files:
         if not os.path.exists(input_file_name):
