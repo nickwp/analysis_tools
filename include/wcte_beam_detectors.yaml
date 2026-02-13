@@ -18,30 +18,245 @@ materials_library:
 detectors:
   # Note: mylar and vinyl values below are thickness per face.
   # If the particle crosses both faces, multiply those thicknesses by 2 in the material budget.
+  
+  Mylar_beam_window:
+      center_m: 0.000
+      layers_m:
+        mylar: 0.00025
+  
   T0:
     center_m: 0.064
     layers_m:
+      vinyl_0: 0.003
+      mylar_0: 0.00005
       scintillator: 0.0064
-      mylar: 0.00005
-      vinyl: 0.003
+      mylar_1: 0.00005
+      vinyl_1: 0.003
 
   T4:
     center_m: 3.0636
     layers_m:
+      vinyl_0: 0.003
+      mylar_0: 0.00005
       scintillator: 0.0064
-      mylar: 0.00005
-      vinyl: 0.003
+      mylar_1: 0.00005
+      vinyl_1: 0.003
 
   T1:
     center_m: 4.4475
     layers_m:
+      vinyl_0: 0.003
+      mylar_0: 0.00005
       scintillator: 0.0064
-      mylar: 0.00005
-      vinyl: 0.003
+      mylar_1: 0.00005
+      vinyl_1: 0.003
 
   T5:
     center_m: 6.5306
     layers_m:
+      vinyl_0: 0.003
+      mylar_0: 0.00005
       scintillator: 0.0064
-      mylar: 0.00005
-      vinyl: 0.003
+      mylar_1: 0.00005
+      vinyl_1: 0.003
+      
+      
+  ACT_1.006:
+      layers_m:
+          #the upstream thickness of the box 5mm
+          air_0: 0.005
+          vinyl_0: 0.00038
+          air_1: 0.017
+          mylar_0: 0.00005 
+          aerogel: 0.04
+          air_2: 0.017
+          #will consider the triangular mirror flat at the tip point
+          mylar_1: 0.00005
+          air_3: 0.017
+          vinyl_1: 0.00038
+          #the downstream thickness of the box 5mm
+          air_4: 0.005
+      
+  ACT_1.01:
+      layers_m:
+          #the upstream thickness of the box 5mm
+          air_0: 0.005
+          vinyl_0: 0.00038
+          air_1: 0.017
+          mylar_0: 0.00005 
+          aerogel: 0.04
+          air_2: 0.017
+          #will consider the triangular mirror flat at the tip point
+          mylar_1: 0.00005
+          air_3: 0.017
+          vinyl_1: 0.00038
+          #the downstream thickness of the box 5mm
+          air_4: 0.005
+          
+  ACT_1.015:
+      layers_m:
+          #the upstream thickness of the box 5mm
+          air_0: 0.005
+          vinyl_0: 0.00038
+          air_1: 0.017
+          mylar_0: 0.00005 
+          aerogel: 0.06
+          air_2: 0.017
+          #will consider the triangular mirror flat at the tip point
+          mylar_1: 0.00005
+          air_3: 0.017
+          vinyl_1: 0.00038
+          #the downstream thickness of the box 5mm
+          air_4: 0.005
+  
+  ACT_1.03:
+      layers_m:
+          #the upstream thickness of the box 5mm
+          air_0: 0.005
+          vinyl_0: 0.00038
+          air_1: 0.017
+          mylar_0: 0.00005 
+          aerogel: 0.04
+          air_2: 0.017
+          #will consider the triangular mirror flat at the tip point
+          mylar_1: 0.00005
+          air_3: 0.017
+          vinyl_1: 0.00038
+          #the downstream thickness of the box 5mm
+          air_4: 0.005
+  ACT_1.02:
+      layers_m:
+          #the upstream thickness of the box 5mm
+          air_0: 0.005
+          vinyl_0: 0.00038
+          air_1: 0.017
+          mylar_0: 0.00005 
+          aerogel: 0.06
+          air_2: 0.017
+          #will consider the triangular mirror flat at the tip point
+          mylar_1: 0.00005
+          air_3: 0.017
+          vinyl_1: 0.00038
+          #the downstream thickness of the box 5mm
+          air_4: 0.005
+  
+          
+  ACT_1.075:
+      layers_m:
+          #the upstream thickness of the box 5mm
+          air_0: 0.005
+          vinyl_0: 0.00038
+          air_1: 0.017
+          mylar_0: 0.00005 
+          aerogel: 0.04
+          air_2: 0.017
+          #will consider the triangular mirror flat at the tip point
+          mylar_1: 0.00005
+          air_3: 0.017
+          vinyl_1: 0.00038
+          #the downstream thickness of the box 5mm
+          air_4: 0.005
+  
+  ACT_1.047:
+  
+      layers_m:
+          #the upstream thickness of the box 5mm
+          air_0: 0.005
+          vinyl_0: 0.00038
+          air_1:  0.010
+          mylar_0: 0.00005 
+          aerogel: 0.06
+          air_2: 0.017
+          #will consider the triangular mirror flat at the tip point
+          mylar_1: 0.00005
+          air_3:  0.087
+          vinyl_1: 0.00038
+          #the downstream thickness of the box 5mm
+          air_4: 0.005
+          
+  ACT_1.13:
+      layers_m:
+          #the upstream thickness of the box 5mm
+          air_0: 0.005
+          vinyl_0: 0.00038
+          air_1: 0.010
+          mylar_0: 0.00005 
+          aerogel: 0.020
+          air_2: 0.017
+          #will consider the triangular mirror flat at the tip point
+          mylar_1: 0.00005
+          air_3: 0.087
+          vinyl_1: 0.00038
+          #the downstream thickness of the box 5mm
+          air_4: 0.005
+          
+  ACT_1.15:
+      layers_m:
+          #the upstream thickness of the box 5mm
+          air_0: 0.005
+          vinyl_0: 0.00038
+          air_1: 0.010
+          mylar_0: 0.00005 
+          aerogel: 0.020
+          air_2: 0.017
+          #will consider the triangular mirror flat at the tip point
+          mylar_1: 0.00005
+          air_3: 0.087
+          vinyl_1: 0.00038
+          #the downstream thickness of the box 5mm
+          air_4: 0.005
+          
+  ACT_1.11:
+      layers_m:
+          #the upstream thickness of the box 5mm
+          air_0: 0.005
+          vinyl_0: 0.00038
+          air_1: 0.010
+          mylar_0: 0.00005 
+          aerogel: 0.020
+          air_2: 0.017
+          #will consider the triangular mirror flat at the tip point
+          mylar_1: 0.00005
+          air_3: 0.087
+          vinyl_1: 0.00038
+          #the downstream thickness of the box 5mm
+          air_4: 0.005
+          
+          
+  ACT_1.06:
+      layers_m:
+          #the upstream thickness of the box 5mm
+          air_0: 0.005
+          vinyl_0: 0.00038
+          air_1: 0.010
+          mylar_0: 0.00005 
+          aerogel: 0.05 
+          #we have two aerogel with thicknesses 6 and 4, we do the average
+          air_2: 0.017
+          #will consider the triangular mirror flat at the tip point
+          mylar_1: 0.00005
+          air_3: 0.087
+          vinyl_1: 0.00038
+          #the downstream thickness of the box 5mm
+          air_4: 0.005
+  
+  ACT0:
+      center_m: 3.26
+  ACT1:
+      center_m: 3.46
+  ACT2:
+      center_m: 3.66
+  ACT3:
+      center_m: 3.86
+  ACT4:
+      center_m: 4.06
+  ACT5:
+      center_m: 4.26
+      
+  WCTE_window:
+      center_m: 6.5566
+      layers_m:
+        mylar: 0.0012
+  
+      
+ 

@@ -58,9 +58,9 @@ ana = BeamAnalysis(run_number, run_momentum, n_eveto_group, n_tagger_group, ther
 
 # cProfile.run("ana.open_file(n_events, require_t5 = True)", sort="cumtime")
 
-#Store into memory the number of events desired
+#Store into memory the number of events desired, 
+# set require_t5 to False if you do not require that the particle reaches T5
 ana.open_file(n_events, require_t5 = True)
-
 
 
 #Step 2: Adjust the 1pe calibration: need to check the accuracy on the plots
@@ -80,23 +80,22 @@ ana.tag_electrons_ACT02()
 ana.plot_ACT35_left_vs_right()
 
 #Step 6: make the muon/pion separation, using the muon tagger in case 
-#at least 0.5% of muons and pions are above the cut line. This is necessary in case the 
+#at least 0.5% of muons and pions are above the cut line (at hiogh momentum). This is necessary in case the 
 #Number of particles is too high to clearly see a minimum between the muons and pions
-#A more thorough analysis might want to remove events that are close to the cut line for a higher purity
 ana.tag_muons_pions_ACT35()
 
 #This corrects any offset in the TOF (e.g. from cable length) that can cause the TOF 
 #of electrons to be different from L/c This has to be calibrated to give meaningful momentum 
 #estimates later on
-ana.measure_particle_TOF()
-
-### here check the TOF distributions
-ana.plot_all_TOFs()
+ana.measure_particle_TOF() 
 
 #This function extimates both the mean momentum for each particle type and for each trigger
 #We take the the error on the tof for each trigger is the resolution of the TS0-TS1 measurement
 #Taken as the std of the gaussian fit to the electron TOF
-ana.estimate_momentum(verbose = False)
+ana.estimate_particle_momentum()
+
+#estimate the number of events per POT
+ana.plot_number_particles_per_POT()
 
 #Step X: end_analysis, necessary to cleanly close files 
 ana.end_analysis()

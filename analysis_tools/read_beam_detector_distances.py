@@ -18,9 +18,9 @@ class ReadBeamRunInfo:
     def __init__(self):
         with open("/eos/experiment/wcte/configuration/run_info/google_sheet_beam_data.json") as f:
             self.runs = json.load(f)
-            
+
     def get_info_run_number(self, run_number):
-        
+
         target_run = None
         for run in self.runs:
             if run.get("run_number") == str(run_number):
@@ -28,27 +28,27 @@ class ReadBeamRunInfo:
                 target_run = run
         if target_run == None:
             raise Exception(f"The run {run_number} was not found in the /eos/experiment/wcte/configuration/run_info/google_sheet_beam_data.json referecence file")
-    
+
         run_number = int(target_run.get("run_number"))
         run_momentum = int(target_run.get("beam_momentum"))
-        
+
         if target_run.get("act0")=="out":
             raise Exception(f"There is no ACT0 in run {run_number}")
-        
+
         n_eveto_group = float(target_run.get("act0"))
 
         if (target_run.get("act0") != target_run.get("act1") or target_run.get("act0")!= target_run.get("act2") or target_run.get("act1") != target_run.get("act2")):
             raise Exception("The three upstream ACTs should have the same refractive index")
 
-        there_is_ACT5 = True    
+        there_is_ACT5 = True
 
         n_tagger_group = float(target_run.get("act3"))
 
         print(n_tagger_group)
 
-        if (target_run.get("act5")=="OUT"):
+        if (target_run.get("act5")=="out") or (target_run.get("act5")=="OUT"):
             there_is_ACT5 = False
-            
+
         if (target_run.get("lead_glass")=="IN"):
             raise Exception(f"This beam analysis code is designed for runs where the lead_glass is out of the beamline, in run {run_number} it is {target_run.get("lead_glass")}")
 
@@ -58,12 +58,12 @@ class ReadBeamRunInfo:
         else:
             if (target_run.get("act3") != target_run.get("act4")):
                 raise Exception("The two downstream ACTs should have the same refractive index")
-                
+
         beam_config = target_run.get("beam_config")
-                
+
         return run_number, run_momentum, n_eveto_group, n_tagger_group, there_is_ACT5, beam_config
-    
-    
+
+
     def print_run_summary(self, there_is_ACT5):
         run = self.target_run
         print("\n" + "="*60)
@@ -177,10 +177,10 @@ class DetectorDB:
             raise ValueError(f"Detector '{det_name}' is missing 'center_m'.")
 
         return float(center)
-    
+
     def _thickness(self, det_name: str) -> float:
         """
-        Internal helper method to retrieve the thickness of a TS detector 
+        Internal helper method to retrieve the thickness of a TS detector
 
         Parameters
         ----------
@@ -231,44 +231,98 @@ class DetectorDB:
             Absolute distance between detector centers in meters.
         """
         return abs(self._center(a) - self._center(b))
-    
-    
+
+
     def get_thickness_m(self, det:str, mat:str) -> float:
         """
         Returns the thickness of a given material (mat) layer for a detector (det) in units of meter
-        
+
         Parameters
         ----------
         det: the detector name
         mat: the material name, should be "scintillator"; "mylar" or "vinyl" for TS detectors
-        
+
         """
         thickness_dict = self._thickness(det)
-        
+
         if mat not in thickness_dict.keys():
             raise ValueError(f"Material '{mat}' is missing in 'layers_m': {thickness_dict} for detector {det}.")
-        
+
         return thickness_dict[mat]
-    
+
     def get_total_thickness_m(self, det:str) -> float:
         """
         Returns the total thickness of detector (det) in units of meter
-        
+
         Parameters
         ----------
         det: the detector name
-        
+
         """
         thickness_dict = self._thickness(det)
-        
+
         tot_thickness = 0
-        
+
+        #this is only including one layer of mylar and of vinyl, incorrect
         for mat in thickness_dict.keys():
             tot_thickness += thickness_dict[mat]
-        
-        
-        
+
+
+
         return tot_thickness
+
+
+    def get_all_layers(self, det:str):
+        """Returns three arrays, the name of each layers, the thickness of each layer and the material of each layer."""
+
+        upstream  = True
+        if det[0:3] == "ACT":
+            #we are removing the number of the ACT detector to reduce the number of entries in the yaml file
+            layers = self._thickness(det[0:3]+det[4:])
+            #check if this is an upstream or a downstream ACT
+            if int(det[3]) > 2:
+                upstream = False 
+            
+
+        else:
+            layers = self._thickness(det)
+
+        
+        layer_names = []
+        layer_materials = []
+        layer_thicknesses = []
+        
+        
+        for material in layers.keys():
+            
+            layer_names.append(det+"_"+material)
+            layer_thicknesses.append( layers[material])
+            
+            if material == "aerogel":
+                if upstream:
+                    layer_materials.append("upstreamAerogel")
+                else:
+                    layer_materials.append("downstreamAerogel")
+                    
+                    
+            elif material == "scintillator":
+                layer_materials.append("scintillator")
+                
+            elif material[0:3] == "air":
+                layer_materials.append("air")
+                
+            elif material[0:5] == "vinyl":
+                layer_materials.append("vinyl")
+                
+            elif material[0:5] == "mylar":
+                layer_materials.append("mylar")
+                
+            else:
+                raise Exception(f"The material {material} is not recognised")
+
+            print("det: ", det, " material: ", material, "Thickness: ", layers[material], " m.")
+
+        return layer_names, layer_thicknesses, layer_materials
 
 def detector_distance_m(yaml_path: Union[str, Path], det_a: str, det_b: str) -> float:
     """
