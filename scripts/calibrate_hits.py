@@ -1,43 +1,15 @@
 ## This script creates a new root file with the calibration constants applied to the hit times and charges
-#it is designed to work on WCTEReadoutWindows trees or trees from waveform processed data files
+# It is designed to work on WCTEReadoutWindows trees or trees from waveform processed data files
 import numpy as np
 import uproot
 import awkward as ak
-import gc
-import tracemalloc
 import argparse
 import os
 import time
-import json
-from array import array
 from analysis_tools import CalibrationDBInterface
-from analysis_tools import PMTMapping
-from enum import Flag, auto
-import subprocess
+from analysis_tools.production_utils import get_git_descriptor
 
-def get_git_descriptor(debug=False):
-    try:
-        # Get commit hash / tag
-        desc = subprocess.check_output(
-            ["git", "describe", "--always", "--tags"],
-            stderr=subprocess.STDOUT
-        ).decode().strip()
 
-        # Check if there are uncommitted changes (dirty repo)
-        status = subprocess.check_output(
-            ["git", "status", "--porcelain"],
-            stderr=subprocess.STDOUT
-        ).decode().strip()
-        if status:
-            if debug:
-                print("Warning: Repository has uncommitted changes, but continuing due to debug mode.")
-            else:
-                raise Exception("Repository has uncommitted changes")
-        return desc
-
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError("Git command failed") from e
-       
 def process_data(input_file_names, output_dir, config_dict, timing_offsets_glb_pmt_id, timing_offsets_values, debug=False):
         
     timing_offset_lookup = np.zeros(max(timing_offsets_glb_pmt_id)+1, dtype=np.float64)
@@ -50,9 +22,9 @@ def process_data(input_file_names, output_dir, config_dict, timing_offsets_glb_p
 
         # Construct output path
         base = os.path.splitext(os.path.basename(input_file_name))[0]
-        new_filename = f"{base}_calibrated_hits.root" 
-        os.makedirs(args.output_dir, exist_ok=True)
-        output_file_name = os.path.join(args.output_dir, new_filename)
+        new_filename = f"{base}_calibrated_hits.root"
+        os.makedirs(output_dir, exist_ok=True)
+        output_file_name = os.path.join(output_dir, new_filename)
         
         with uproot.recreate(output_file_name) as outfile:
             # Create a TTree with two variable-length branches
@@ -116,7 +88,7 @@ def process_data(input_file_names, output_dir, config_dict, timing_offsets_glb_p
                 #open the input file in batches
                 for start in range(0, total_entries, batch_size):  
                     stop = min(start + batch_size, total_entries)
-                    if args.debug and start>=5000:
+                    if debug and start >= 5000:
                         print("Stopping after 5000 events for testing")
                         break
                     print(f"Loading entries {start} → {stop}")
@@ -199,13 +171,12 @@ def process_data(input_file_names, output_dir, config_dict, timing_offsets_glb_p
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Add a new branch to a ROOT TTree in batches.")
-    parser.add_argument("-i","--input_files",required=True, nargs='+', help="Path to input ROOT file or files")
-    parser.add_argument("-r","--run_number",required=True, help="Run Number")
-    parser.add_argument("-o","--output_dir",required=True, help="Directory to write output file")
-    # parser = argparse.ArgumentParser()
-    parser.add_argument("--not_official_const", action="store_true",help="Flag to set official = false in const lookup")
-    parser.add_argument("--debug", action="store_true",help="Enable debug - disables checks allowing for test runs")
+    parser = argparse.ArgumentParser(description="Calibrate hit times and charges using timing constants from the calibration database.")
+    parser.add_argument("-i", "--input_files", required=True, nargs='+', help="Path to input ROOT file or files")
+    parser.add_argument("-r", "--run_number", required=True, help="Run number")
+    parser.add_argument("-o", "--output_dir", required=True, help="Directory to write output file")
+    parser.add_argument("--not_official_const", action="store_true", help="Flag to set official = false in const lookup")
+    parser.add_argument("--debug", action="store_true", help="Enable debug - disables checks allowing for test runs")
     args = parser.parse_args()
     
     #check that the run number is correct 

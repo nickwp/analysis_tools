@@ -1,84 +1,20 @@
 import numpy as np
 import uproot
 import awkward as ak
-import gc
-import tracemalloc
 import argparse
 import os
-import time
-import json
-from array import array
-from analysis_tools import CalibrationDBInterface
-from analysis_tools import PMTMapping
-from enum import Flag, auto
-import subprocess
-import hashlib
-
 from data_quality_flags import HitMask, TriggerMask
+from analysis_tools.production_utils import (
+    get_git_descriptor,
+    file_sha256,
+    get_run_database_data,
+    get_stable_mpmt_list_slow_control,
+    slot_pos_from_card_chan_list,
+    write_status_json,
+)
 
-def get_git_descriptor(debug=False):
-    try:
-        # Get commit hash / tag
-        desc = subprocess.check_output(
-            ["git", "describe", "--always", "--tags"],
-            stderr=subprocess.STDOUT
-        ).decode().strip()
+SLOW_CONTROL_GOOD_RUN_LIST_PATH = '/eos/experiment/wcte/configuration/slow_control_summary/all_run_list.json'
 
-        # Check if there are uncommitted changes (dirty repo)
-        status = subprocess.check_output(
-            ["git", "status", "--porcelain"],
-            stderr=subprocess.STDOUT
-        ).decode().strip()
-        if status:
-            if debug:
-                print("Warning: Repository has uncommitted changes, but continuing due to debug mode.")
-            else:
-                raise Exception("Repository has uncommitted changes")
-        return desc
-
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError("Git command failed") from e
-
-
-def file_sha256(path, chunk_size=1024 * 1024):
-    #get the hash of a file, used to identify input slow control file used
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(chunk_size), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-def get_run_database_data(json_path,run_number):
-
-    with open(json_path, 'r') as f:
-        data = json.load(f)
-
-    run_key = str(run_number)
-    if run_key not in data:
-        raise ValueError(f"Run number {run_number} not found in the JSON data.")
-    return data[run_key]    
-       
-def get_stable_mpmt_list_slow_control(run_data:dict,run_number:int):
-    """
-    Reads the slow control good run list JSON file to get the stable mPMT list for a given run number
-    run_data - dict of data for specific run
-    run_number - the run number integer
-    returns a length-2 tuple
-            set of enabled channels (in card-channel format)
-            set of masked channels in card-channel format)
-    """
-    # with open(good_run_list_path, 'r') as f:
-    #     data = json.load(f)
-
-    # run_key = str(run_number)
-    # print("run_number",run_number)
-    # if run_key not in data:
-    #     raise ValueError(f"Run number {run_number} not found in the JSON data.")
-
-    enabled_channels = set(run_data["enabled_channels"])
-    channel_mask = set(run_data["channel_mask"])
-
-    return enabled_channels, channel_mask
 
 def mask_windows_missing_waveforms(good_channel_list, readout_window_events):
     """
@@ -109,30 +45,16 @@ def mask_windows_missing_waveforms(good_channel_list, readout_window_events):
         
     return has_all_good_channels    
 
-def slot_pos_from_card_chan_list(card_chan_list):
-    """
-    Converts a list of card-channel identifiers to slot-position identifiers
-    card_chan_list - list or array of integers in card-channel format (e.g. 201 for card 2 channel 1)
-    returns a numpy array of integers in slot-position format (e.g. 203 for slot 2 position 3)
-    """
-    mapping = PMTMapping()
-    slot_pos_list = []
-    for ch in card_chan_list:
-        card = ch // 100
-        pmt_chan = ch % 100
-        slot, pmt_pos = mapping.get_slot_pmt_pos_from_card_pmt_chan(card, pmt_chan)
-        slot_pos_list.append(100 * slot + pmt_pos)
-    return np.array(slot_pos_list)
 
 if __name__ == "__main__":
     
-    parser = argparse.ArgumentParser(description="Add a new branch to a ROOT TTree in batches.")
-    parser.add_argument("-i","--input_files",required=True, nargs='+', help="Path to WCTEReadoutWindows ROOT file")
-    parser.add_argument("-c","--input_calibrated_file_directory",required=True, help="Path to calibrated hits ROOT file")
-    parser.add_argument("-hw","--input_wf_processed_file_directory",required=True, help="Path to hardware trigger processed ROOT file")
-    parser.add_argument("-r","--run_number",required=True, help="Run Number")
-    parser.add_argument("-o","--output_dir",required=True, help="Directory to write output file")
-    parser.add_argument("--debug", action="store_true",help="Enable debug - disables checks allowing for test runs")
+    parser = argparse.ArgumentParser(description="Apply data quality flags to hardware-trigger data.")
+    parser.add_argument("-i", "--input_files", required=True, nargs='+', help="Path to WCTEReadoutWindows ROOT file(s)")
+    parser.add_argument("-c", "--input_calibrated_file_directory", required=True, help="Path to calibrated hits directory")
+    parser.add_argument("-hw", "--input_wf_processed_file_directory", required=True, help="Path to waveform-processed files directory")
+    parser.add_argument("-r", "--run_number", required=True, help="Run number")
+    parser.add_argument("-o", "--output_dir", required=True, help="Directory to write output file")
+    parser.add_argument("--debug", action="store_true", help="Enable debug - disables checks allowing for test runs")
     args = parser.parse_args()
     
     git_hash = get_git_descriptor(debug=args.debug)
@@ -171,18 +93,18 @@ if __name__ == "__main__":
             raise Exception(f"Waveform processed input file {wf_processed_file_path} does not exist")
         
     #slow control file for good run list
-    good_run_list_path = '/eos/experiment/wcte/configuration/slow_control_summary/all_run_list.json' 
-    
+    good_run_list_path = SLOW_CONTROL_GOOD_RUN_LIST_PATH
+
     #get hash of slow control file used
     full_hash = file_sha256(good_run_list_path)
-    short_hash = full_hash[:10]   # e.g. first 8–12 chars
-    
+    short_hash = full_hash[:10]
+
     #get run configuration from slow control
-    run_data = get_run_database_data(good_run_list_path,args.run_number)
+    run_data = get_run_database_data(good_run_list_path, args.run_number)
     run_configuration = run_data["trigger_name"]
-    
+
     #get stable list of channels from slow control
-    enabled_channels, channel_mask = get_stable_mpmt_list_slow_control(run_data,args.run_number)
+    enabled_channels, channel_mask = get_stable_mpmt_list_slow_control(run_data)
     #the channels that are enabled less the channels that are determined as unstable
     stable_channels_card_chan = enabled_channels - channel_mask
     #map slow control channel list in card and channel to the mpmt slot and position
@@ -280,8 +202,8 @@ if __name__ == "__main__":
                             calibrated_file_events = calibrated_tree.arrays(branches_to_load,library="ak", entry_start=start, entry_stop=stop)
                             
                             branches_to_load = ["readout_number","trigger_time","missing_trigger_flag","event_bad_waveform_lengths_flag"]
-                            wf_processed = wf_processed_file["ProcessedWaveforms"]
-                            wf_processed_events = wf_processed.arrays(branches_to_load,library="ak", entry_start=start, entry_stop=stop)
+                            wf_processed_tree = wf_processed_file["ProcessedWaveforms"]
+                            wf_processed_events = wf_processed_tree.arrays(branches_to_load, library="ak", entry_start=start, entry_stop=stop)
                             
                             if not np.array_equal(readout_window_events["readout_number"].to_numpy(),calibrated_file_events["readout_number"].to_numpy()):
                                 raise Exception("Batch start",start,"different events being compared between two files")
@@ -325,8 +247,19 @@ if __name__ == "__main__":
                             print("Batch processed",np.sum(trigger_mask==0),"/",len(trigger_mask),"good triggers", f"{np.sum(trigger_mask==0)/len(trigger_mask):.2%}")
                             print("Processed",np.sum(hit_mask_flat==0),"/",len(hit_mask_flat),"good hits", f"{np.sum(hit_mask_flat==0)/len(hit_mask_flat):.2%}")
     
-    print("Run",args.run_number,"has",len(good_wcte_pmts),"good WCTE PMTs")
-    print("In total processed",run_total_triggers,"triggers with",run_total_bad_triggers,"bad triggers", f"{run_total_bad_triggers/run_total_triggers:.2%}")
-    print("In total processed",run_total_hits,"hits with",run_total_bad_hits," bad hits", f"{run_total_bad_hits/run_total_hits:.2%}")
-    print("Finished processing run",args.run_number,"across",len(args.input_files),"files")
+    print("Finished processing run", args.run_number, "across", len(args.input_files), "files")
+
+    bad_trig_pct = 100.0 * run_total_bad_triggers / run_total_triggers if run_total_triggers else 0.0
+    bad_hit_pct  = 100.0 * run_total_bad_hits  / run_total_hits  if run_total_hits  else 0.0
+
+    metrics = {
+        "n_good_pmt_channels": int(len(good_wcte_pmts)),
+        "n_triggers":          int(run_total_triggers),
+        "n_bad_triggers":      int(run_total_bad_triggers),
+        "bad_trig_pct":        round(bad_trig_pct, 2),
+        "n_hits":              int(run_total_hits),
+        "n_bad_hits":          int(run_total_bad_hits),
+        "bad_hit_pct":         round(bad_hit_pct, 2),
+    }
+    write_status_json(output_file_name, metrics)
     print("*** Hardware trigger DQ flags script complete ***")

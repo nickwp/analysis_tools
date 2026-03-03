@@ -10,32 +10,9 @@ from analysis_tools.pulse_finding import do_pulse_finding_vect
 import time
 import argparse
 import os
-import subprocess
+from analysis_tools.production_utils import get_git_descriptor
 
-def get_git_descriptor(debug=False):
-    try:
-        # Get commit hash / tag
-        desc = subprocess.check_output(
-            ["git", "describe", "--always", "--tags"],
-            stderr=subprocess.STDOUT
-        ).decode().strip()
 
-        # Check if there are uncommitted changes (dirty repo)
-        status = subprocess.check_output(
-            ["git", "status", "--porcelain"],
-            stderr=subprocess.STDOUT
-        ).decode().strip()
-        if status:
-            if debug:
-                print("Warning: Repository has uncommitted changes, but continuing due to debug mode.")
-            else:
-                raise Exception("Repository has uncommitted changes")
-
-        return desc
-
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError("Git command failed") from e
-    
 def do_hit_processing(waveforms, waveform_times, waveform_cards, waveform_channels, wf_length):
     
     if not isinstance(waveforms, np.ndarray):
