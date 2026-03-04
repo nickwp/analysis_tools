@@ -4177,6 +4177,14 @@ class BeamAnalysis:
                 "mu_tag_cut": np.array([self.mu_tag_cut], dtype=np.float64),
                 "using_mu_tag_cut": np.array([self.using_mu_tag_cut], dtype=np.float64),
                 
+                #output the number of triggers identified as each particle, for reference 
+                #here we need to sum from the df dataframe and not the df_all which doesn't have the PID info
+                "n_electrons": np.array([sum(self.df["is_electron"])], dtype=np.float64),
+                "n_muons": np.array([sum(self.df["is_muon"])], dtype=np.float64),
+                "n_pions": np.array([sum(self.df["is_pion"])], dtype=np.float64),
+                "n_protons": np.array([sum(self.df["is_proton"])], dtype=np.float64),
+                "n_deuterium": np.array([sum(self.df["is_deuteron"])], dtype=np.float64),
+                
 #                 "pion_purity":np.array([self.pion_purity], dtype=np.float64),
 #                 "pion_efficiency":np.array([self.pion_efficiency], dtype=np.float64),
 #                 "muon_purity":np.array([self.muon_purity], dtype=np.float64),
