@@ -905,16 +905,16 @@ class BeamAnalysis:
         self.df_all["mu_tag_total"] = self.df_all["mu_tag_l"] + self.df_all["mu_tag_r"]
         
         
-        self.df_all["act_eveto"] = self.df_all["act0_l"]+self.df_all["act0_r"]+self.df_all["act1_l"]+self.df_all["act1_r"]+self.df_all["act2_l"]+self.df_all["act2_r"]
+        
         
         
         if self.there_is_ACT5:
             self.PMT_list = ["act0_l", "act0_r", "act1_l",  "act1_r", "act2_l", "act2_r", "act3_l", "act3_r", "act4_l", "act4_r", "act5_l", "act5_r"]
-            self.df_all["act_tagger"] = self.df_all["act3_l"]+self.df_all["act3_r"]+self.df_all["act4_l"]+self.df_all["act4_r"]+self.df_all["act5_l"]+self.df_all["act5_r"]
+           
             
         else:
             self.PMT_list = ["act0_l", "act0_r", "act1_l",  "act1_r", "act2_l", "act2_r", "act3_l", "act3_r", "act4_l", "act4_r"]
-            self.df_all["act_tagger"] = self.df_all["act3_l"]+self.df_all["act3_r"]+self.df_all["act4_l"]+self.df_all["act4_r"]
+            
         
         #here make the subset sample that we are keeping for analysis:
         if self.require_t5_hit:
@@ -1011,7 +1011,11 @@ class BeamAnalysis:
             entries_onepe = h[is_onepe_region]
 
             #fit a gaussian 
-            popt, pcov = fit_gaussian(entries_onepe, bins_onepe)
+            try:
+                popt, pcov = fit_gaussian(entries_onepe, bins_onepe)
+            except:
+                print("We did not manage to fit the 1pe peak, we are therefore not correcting its position")
+                popt = np.array([0, 1, 0])
             #ax.plot(bins_onepe, gaussian(bins_onepe, *popt), "k--", label = f"Gaussian fit to 1pe peak:\nMean: {popt[1]:.2f} PE, std: {popt[2]:.2f} PE")
 
             self.df[PMT] /= popt[1] #actually change the array: pedestal shifted: can do as many times as we want, will just substract 0 all the n>1 times we do it
@@ -1022,9 +1026,25 @@ class BeamAnalysis:
             
             h, _, _ = ax.hist(self.df[PMT], bins = bins, histtype = "step", label = "+ charge scale")
             entries_onepe = h[is_onepe_region]
-            popt, pcov = fit_gaussian(entries_onepe, bins_onepe)
-            ax.plot(bins_onepe, gaussian(bins_onepe, *popt), "k--", label = f"Gaussian fit to 1pe peak:\nMean: {popt[1]:.2f} PE, std: {popt[2]:.2f} PE")
+            try:
+                popt, pcov = fit_gaussian(entries_onepe, bins_onepe)
+                ax.plot(bins_onepe, gaussian(bins_onepe, *popt), "k--", label = f"Gaussian fit to 1pe peak:\nMean: {popt[1]:.2f} PE, std: {popt[2]:.2f} PE")
+            except:
+                #in case we do not manage to fit the 1pe position, still do not crash the whole thing
+                print("We did not manage to fit the 1pe peak")
+            
 
+            #now that we have the correct 1pe calibration, make the combination of ACT charges 
+            self.df["act_eveto"] = self.df["act0_l"]+self.df["act0_r"]+self.df["act1_l"]+self.df["act1_r"]+self.df["act2_l"]+self.df["act2_r"]
+            
+            if self.there_is_ACT5:
+                self.df["act_tagger"] = self.df["act3_l"]+self.df["act3_r"]+self.df["act4_l"]+self.df["act4_r"]+self.df["act5_l"]+self.df["act5_r"]
+            
+            else:
+                self.df["act_tagger"] = self.df["act3_l"]+self.df["act3_r"]+self.df["act4_l"]+self.df["act4_r"]
+
+            
+            
             ax.set_yscale("log")
             ax.legend(fontsize = 16)
             ax.set_xlabel("Charge collected (PE)", fontsize = 18)
@@ -1043,6 +1063,7 @@ class BeamAnalysis:
         bins = np.linspace(0, 40, 200)
         fig, ax = plt.subplots(figsize = (8, 6))    
         h, _, _ = ax.hist(self.df["act_eveto"], bins = bins, histtype = "step")
+        
 
         #automatically find the middle of the least populated bin within 4 and 15 PE
         bin_centers = 0.5 * (bins[:-1] + bins[1:])
@@ -1902,6 +1923,12 @@ class BeamAnalysis:
                 
         str_n_eveto = str(self.n_eveto)
         str_n_tagger = str(self.n_tagger)
+        
+        #we have an issue: 1.075 reference table is yet available, instead we use 1.06
+        if self.n_tagger == 1.075:
+            str_n_tagger = str(1.06)
+        if self.n_eveto == 1.075:
+            str_n_eveto = str(1.06)
         
         # Read in the theoretical losses from G4 tables provided by Arturo
         losses_dataset_air = f"../include/{p_name}StoppingPowerAirGeant4.csv"
