@@ -3499,13 +3499,13 @@ class BeamAnalysis:
             print("")
         
         
-        if sum(self.df["is_proton"])>100:
+        if sum(self.df["is_proton"])>20:
             try:
                 ax.set_xlim(self.particle_mom_mean["muon"] * 0.4, self.particle_mom_mean["proton"] * 1.6)
             except:
                 print("")
             
-        if sum(self.df["is_deuteron"])>100:
+        if sum(self.df["is_deuteron"])>20:
             try:
                 ax.set_xlim(self.particle_mom_mean["muon"] * 0.4, self.particle_mom_mean["deuteron"] * 1.6)
             except:
@@ -3648,13 +3648,13 @@ class BeamAnalysis:
             print("")
         
         
-        if  sum(self.df["is_proton"])>100:
+        if  sum(self.df["is_proton"])>20:
             try:
                 ax.set_xlim(self.particle_mom_final_mean["muon"] * 0.4, self.particle_mom_final_mean["proton"] * 1.6)
             except:
                 print("")
             
-        if sum(self.df["is_deuteron"])>100:
+        if sum(self.df["is_deuteron"])>20:
             try:
                 ax.set_xlim(self.particle_mom_final_mean["muon"] * 0.4, self.particle_mom_final_mean["deuteron"] * 1.6)
             except:
@@ -3775,7 +3775,7 @@ class BeamAnalysis:
             except: 
                 popt_p_t0t4 = [0, 0, 0, 0, 0, 0, 0, 0, 0]
             
-        if sum(self.df["is_deuteron"])>100:
+        if sum(self.df["is_deuteron"])>20:
             h_D, _ = np.histogram(self.df["tof_corr"][self.df["is_deuteron"]==1], bins = bins_tof)
             popt_D, pcov = fit_gaussian(h_D, bin_centers)
             
@@ -3795,7 +3795,7 @@ class BeamAnalysis:
         if there_is_proton:
             ax.hist(self.df["tof_corr"][self.df["is_proton"]==1], bins = bins_tof, histtype = "step", label = f"Protons: tof = {popt_p[1]:.2f} "+ r"$\pm$"+ f" {popt_p[2]:.2f} ns")
             
-        if sum(self.df["is_deuteron"])>100:
+        if sum(self.df["is_deuteron"])>20:
             ax.hist(self.df["tof_corr"][self.df["is_deuteron"]==1], bins = bins_tof, histtype = "step", label = f"Deuterons: tof = {popt_D[1]:.2f} "+ r"$\pm$"+ f" {popt_D[2]:.2f} ns")
             
             
@@ -3861,7 +3861,7 @@ class BeamAnalysis:
         if there_is_proton:
             ax.plot(bins_tof, gaussian(bins_tof, popt_p[0], popt_p[1], popt_p[2]), "--", color = "k")
             
-        if sum(self.df["is_deuteron"])>100:
+        if sum(self.df["is_deuteron"])>20:
             ax.plot(bins_tof, gaussian(bins_tof, popt_D[0], popt_D[1], popt_D[2]), "--", color = "k")
             
             
@@ -3878,7 +3878,7 @@ class BeamAnalysis:
         if there_is_proton:
             ax.set_xlim(None, popt_p[1] * 1.2)
             
-        if sum(self.df["is_deuteron"])>100:
+        if sum(self.df["is_deuteron"])>20:
             ax.set_xlim(None, popt_D[1] * 1.2)
             
         self.pdf_global.savefig(fig)
@@ -3898,7 +3898,7 @@ class BeamAnalysis:
             ax.hist(self.df["tof_t0t4_corr"][self.df["is_proton"]==1], bins = bins_tof_t0t4, histtype = "step", label = f"Protons: tof = {popt_p_t0t4[1]:.2f} "+ r"$\pm$"+ f" {popt_p_t0t4[2]:.2f} ns")
             
             
-        if sum(self.df["is_deuteron"])>100:
+        if sum(self.df["is_deuteron"])>20:
             ax.hist(self.df["tof_t0t4_corr"][self.df["is_deuteron"]==1], bins = bins_tof_t0t4, histtype = "step", label = f"Deuterons: tof = {popt_D_t0t4[1]:.2f} "+ r"$\pm$"+ f" {popt_D_t0t4[2]:.2f} ns")
             
             
@@ -3976,10 +3976,10 @@ class BeamAnalysis:
                 std_proton_T0T4_tof = popt_p_t0t4[8]
                 
             
-        if sum(self.df["is_deuteron"])>100:
+        if sum(self.df["is_deuteron"])>20:
             ax.plot(bins_tof_t0t4, gaussian(bins_tof_t0t4, popt_D_t0t4[0], popt_D_t0t4[1], popt_D_t0t4[2]), "--", color = "k")
 
-        if sum(self.df["is_tritium"])>100:
+        if sum(self.df["is_tritium"])>20:
             ax.plot(bins_tof_t0t4, gaussian(bins_tof_t0t4, popt_tritium_t0t4[0], popt_tritium_t0t4[1], popt_tritium_t0t4[2]), "--", color = "k")
             
             
@@ -3996,7 +3996,7 @@ class BeamAnalysis:
         if there_is_proton:
             ax.set_xlim(None, popt_p[1] * 1.2)
             
-        if sum(self.df["is_deuteron"])>100:
+        if sum(self.df["is_deuteron"])>20:
             ax.set_xlim(None, popt_D[1] * 1.2)
             
         self.pdf_global.savefig(fig)
@@ -4010,7 +4010,7 @@ class BeamAnalysis:
             "muon": popt_mu[1],
             "pion": popt_pi[1],
             "proton": popt_p[1] if there_is_proton else 0,
-            "deuteron": popt_D[1] if sum(self.df["is_deuteron"])>100 else 0,
+            "deuteron": popt_D[1] if sum(self.df["is_deuteron"])>20 else 0,
             "helium3": popt_He3[1] if sum(self.df["is_helium3"])>20 else 0,
             "tritium": popt_tritium[1] if sum(self.df["is_tritium"])>20 else 0,
             "lithium6": popt_Li6[1] if sum(self.df["is_lithium6"])>20 else 0,
@@ -4021,7 +4021,7 @@ class BeamAnalysis:
             "muon": popt_mu[2],
             "pion": popt_pi[2],
             "proton": popt_p[2] if there_is_proton else 0,
-            "deuteron": popt_D[2] if sum(self.df["is_deuteron"])>100 else 0,
+            "deuteron": popt_D[2] if sum(self.df["is_deuteron"])>20 else 0,
             "helium3": popt_He3[2] if sum(self.df["is_helium3"])>20 else 0,
             "tritium": popt_tritium[2] if sum(self.df["is_tritium"])>20 else 0,
             "lithium6": popt_Li6[2] if sum(self.df["is_lithium6"])>20 else 0,    
@@ -4032,7 +4032,7 @@ class BeamAnalysis:
             "muon": popt_mu[2]/np.sqrt(sum(self.df["is_muon"])),
             "pion": popt_pi[2]/np.sqrt(sum(self.df["is_pion"])),
             "proton": popt_p[2]/np.sqrt(sum(self.df["is_proton"])) if there_is_proton else 0,
-            "deuteron": popt_D[2]/np.sqrt(sum(self.df["is_deuteron"])) if sum(self.df["is_deuteron"])>100 else 0,
+            "deuteron": popt_D[2]/np.sqrt(sum(self.df["is_deuteron"])) if sum(self.df["is_deuteron"])>20 else 0,
             "helium3": popt_He3[2]/np.sqrt(sum(self.df["is_helium3"])) if sum(self.df["is_helium3"])>20 else 0,
             "tritium": popt_tritium[2]/np.sqrt(sum(self.df["is_tritium"])) if sum(self.df["is_tritium"])>20 else 0,
             "lithium6": popt_Li6[2]/np.sqrt(sum(self.df["is_lithium6"])) if sum(self.df["is_lithium6"])>20 else 0,
@@ -4047,7 +4047,7 @@ class BeamAnalysis:
             "muon": popt_mu_t0t4[1],
             "pion": popt_pi_t0t4[1],
             "proton": mean_proton_T0T4_tof if there_is_proton else 0,
-            "deuteron": popt_D_t0t4[1] if sum(self.df["is_deuteron"])>100 else 0,
+            "deuteron": popt_D_t0t4[1] if sum(self.df["is_deuteron"])>20 else 0,
             "helium3": popt_He3[1] if sum(self.df["is_helium3"])>20 else 0,
             "tritium": popt_tritium_t0t4[1] if sum(self.df["is_tritium"])>20 else 0,
             "lithium6": popt_Li6[1] if sum(self.df["is_lithium6"])>20 else 0,
@@ -4058,7 +4058,7 @@ class BeamAnalysis:
             "muon": popt_mu_t0t4[2],
             "pion": popt_pi_t0t4[2],
             "proton": std_proton_T0T4_tof if there_is_proton else 0,
-            "deuteron": popt_D_t0t4[2] if sum(self.df["is_deuteron"])>100 else 0,
+            "deuteron": popt_D_t0t4[2] if sum(self.df["is_deuteron"])>20 else 0,
             "helium3": popt_He3[2] if sum(self.df["is_helium3"])>20 else 0,
             "tritium": popt_tritium_t0t4[2] if sum(self.df["is_tritium"])>20 else 0,
             "lithium6": popt_Li6[2] if sum(self.df["is_lithium6"])>20 else 0,    
@@ -4069,7 +4069,7 @@ class BeamAnalysis:
             "muon": popt_mu_t0t4[2]/np.sqrt(sum(self.df["is_muon"])),
             "pion": popt_pi_t0t4[2]/np.sqrt(sum(self.df["is_pion"])),
             "proton": std_proton_T0T4_tof/np.sqrt(sum(self.df["is_proton"])) if there_is_proton else 0,
-            "deuteron": popt_D_t0t4[2]/np.sqrt(sum(self.df["is_deuteron"])) if sum(self.df["is_deuteron"])>100 else 0,
+            "deuteron": popt_D_t0t4[2]/np.sqrt(sum(self.df["is_deuteron"])) if sum(self.df["is_deuteron"])>20 else 0,
             "helium3": popt_He3[2]/np.sqrt(sum(self.df["is_helium3"])) if sum(self.df["is_helium3"])>20 else 0,
             "tritium": popt_tritium_t0t4[2]/np.sqrt(sum(self.df["is_tritium"])) if sum(self.df["is_tritium"])>20 else 0,
             "lithium6": popt_Li6[2]/np.sqrt(sum(self.df["is_lithium6"])) if sum(self.df["is_lithium6"])>20 else 0,
@@ -4119,7 +4119,7 @@ class BeamAnalysis:
         if sum(self.df["is_helium3"] == 1) >1:
             _ = ax.hist(self.df["total_TOF_charge"][self.df["is_helium3"] == 1], bins = bins, label = 'helium3', histtype = "step")
             
-        if sum(self.df["is_deuteron"] == 1) >100:
+        if sum(self.df["is_deuteron"] == 1) >20:
             _ = ax.hist(self.df["total_TOF_charge"][self.df["is_deuteron"] == 1], bins = bins, label = 'deuteron', histtype = "step")
             
         if sum(self.df["is_tritium"] == 1) >1:
@@ -4143,7 +4143,7 @@ class BeamAnalysis:
 
         if sum(self.df["is_proton"] == 1)>100:
             _ = ax.hist(self.df["total_TOF_charge"][self.df["is_proton"] == 1], bins = bins, label = 'proton', histtype = "step")
-        if sum(self.df["is_deuteron"] == 1) >100:
+        if sum(self.df["is_deuteron"] == 1) >20:
             _ = ax.hist(self.df["total_TOF_charge"][self.df["is_deuteron"] == 1], bins = bins, label = 'deuteron', histtype = "step")
 
         ax.legend()
