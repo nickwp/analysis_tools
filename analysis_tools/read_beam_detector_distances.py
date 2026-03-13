@@ -17,9 +17,7 @@ class ReadBeamRunInfo:
     """Reads in the run information stored in the json file"""
     def __init__(self):
         #We have changed the place where the google sheet json is stored because of permission issues, will revert back soon, 
-        #with open("/eos/experiment/wcte/configuration/run_info/google_sheet_beam_data.json") as f:
-        
-        with open("/eos/user/a/acraplet/analysis_tools/include/google_sheet_beam_data.json") as f:
+        with open("/eos/experiment/wcte/configuration/run_info/google_sheet_beam_data.json") as f:
             self.runs = json.load(f)
 
     def get_info_run_number(self, run_number):
