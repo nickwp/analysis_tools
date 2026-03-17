@@ -214,7 +214,7 @@ t5_b6_group = [54, 62]
 t5_b7_group = [55, 63]
 t5_total_group = [t5_b0_group, t5_b1_group, t5_b2_group, t5_b3_group,
                   t5_b4_group, t5_b5_group, t5_b6_group, t5_b7_group]
-t5_group = [51, 59, 52, 60, 53, 61, 54, 61, 54, 62, 55, 63]
+t5_group = np.arange(48, 64, 1)
 
 #basic functions, necessary in general
 def gaussian(x, amp, mean, sigma):
@@ -883,6 +883,7 @@ class BeamAnalysis:
 
             
             self.output_to_root(output_file, scalar_info = False)
+            self.end_analysis()
             raise Exception("No triggers are accepted for analysis, exiting early")
         
         #this will be necessary for identifying events later
@@ -2325,18 +2326,32 @@ class BeamAnalysis:
         
         #Check TOF for each particle type
         h_mu, _ = np.histogram(self.df["tof_corr"][self.df["is_muon"]==1], bins = bins_tof)
-        popt_mu, pcov = fit_gaussian(h_mu, bin_centers)
+        
+        
+        try:
+            popt_mu, pcov = fit_gaussian(h_mu, bin_centers)
+        except: 
+            popt_mu  = [0,0,0]
         
         h_pi, _ = np.histogram(self.df["tof_corr"][self.df["is_pion"]==1], bins = bins_tof)
-        popt_pi, pcov = fit_gaussian(h_pi, bin_centers)
+        try:
+            popt_pi, pcov = fit_gaussian(h_pi, bin_centers)
+        except: 
+            popt_pi  = [0,0,0]
         
         h_mu_t0t4, _ = np.histogram(self.df["tof_t0t4_corr"][self.df["is_muon"]==1], bins = bins_tof_t0t4)
+        try:
+            popt_mu_t0t4, pcov_t0t4 = fit_gaussian(h_mu_t0t4, bin_centers_t0t4)
+        except: 
+            popt_mu_t0t4 = [0,0,0]
         
-       
-        popt_mu_t0t4, pcov_t0t4 = fit_gaussian(h_mu_t0t4, bin_centers_t0t4)
         
         h_pi_t0t4, _ = np.histogram(self.df["tof_t0t4_corr"][self.df["is_pion"]==1], bins = bins_tof_t0t4)
-        popt_pi_t0t4, pcov_t0t4 = fit_gaussian(h_pi_t0t4, bin_centers_t0t4)
+        
+        try:
+            popt_pi_t0t4, pcov_t0t4 = fit_gaussian(h_pi_t0t4, bin_centers_t0t4)
+        except: 
+            popt_pi_t0t4 = [0,0,0]
         
         if there_is_proton:
             h_p, _ = np.histogram(self.df["tof_corr"][self.df["is_proton"]==1], bins = bins_tof)
@@ -2740,6 +2755,8 @@ class BeamAnalysis:
            
         for col in self.df.columns:
             if col not in self.df_all.columns:
+                
+
                 if col not in ["is_muon", "is_electron", "is_pion", "is_proton", "is_deuteron", "is_helium3", "final_momentum", "final_momentum_error", "initial_momentum", "initial_momentum_error"]:
                     # create empty column first so the DataFrame lengths match
                     self.df_all[col] = np.nan
