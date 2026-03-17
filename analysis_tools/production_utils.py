@@ -238,7 +238,7 @@ def get_run_info(run_number):
                 f"Run {run_number}: 'tagged' found in beam_config ('{beam_config}') "
                 f"but act0 is '{act0}' (expected 'out'). Check run configuration."
             )
-    elif act3 == "out" or act4 == "out" or act5 == "out":
+    elif act3 == "out" and act4 == "out" and act5 == "out":
         beam_analysis_type = "missing_act"
     else:
         beam_analysis_type = "normal"
