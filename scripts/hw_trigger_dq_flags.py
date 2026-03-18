@@ -14,7 +14,7 @@ from analysis_tools.production_utils import (
 )
 from analysis_tools import CalibrationDBInterface
 
-SLOW_CONTROL_GOOD_RUN_LIST_PATH = '/eos/experiment/wcte/configuration/slow_control_summary/all_run_list.json'
+SLOW_CONTROL_GOOD_RUN_LIST_PATH = '/eos/experiment/wcte/configuration/slow_control_summary/all_run_list_v7.json'
 
 
 def mask_windows_missing_waveforms(good_channel_list, readout_window_events):
