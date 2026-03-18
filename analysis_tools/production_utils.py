@@ -158,7 +158,7 @@ def get_slow_control_trigger_mask(run_number_str, trigger_times, run_data):
         if "dropped" in prob:
             bad_mask = np.logical_or(bad_mask,
                                      np.logical_and(trigger_times > start, trigger_times < end))
-        elif "no_data" in prob or "Status." in prob or "bad_flow" in prob:
+        elif "no_data" in prob or "Status." in prob or "bad_flow" in prob or "packetRate" in prob:
             pass  # channel-level issues — handled separately via the channel mask
         elif "crashed" in prob:
             bad_mask = np.logical_or(bad_mask, trigger_times > (run_data["end"] - 30))
