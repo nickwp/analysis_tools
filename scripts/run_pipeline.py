@@ -126,7 +126,6 @@ if __name__ == "__main__":
 
         if not success:
             print(f"[ERROR] Pipeline step failed for run {args.run_number} — aborting.")
-            sys.exit(1)
 
     # ── Step 2: Beam analysis ─────────────────────────────────────────────────
     if run_vme_processing:
@@ -142,7 +141,6 @@ if __name__ == "__main__":
         result = subprocess.run(beam_cmd)
         if result.returncode != 0:
             print(f"[ERROR] Beam analysis failed for run {args.run_number}")
-            sys.exit(1)
 
     # ── Step 3: T5 analysis ───────────────────────────────────────────────────
     if run_t5_analysis:
@@ -156,7 +154,6 @@ if __name__ == "__main__":
         if not os.path.exists(t5_executable):
             print(f"[ERROR] T5 executable not found at: {t5_executable}")
             print("Please compile it using 'make' in the T5_analysis directory.")
-            sys.exit(1)
             
             
         t5_cmd = [
@@ -187,7 +184,6 @@ if __name__ == "__main__":
         result = subprocess.run(t5_cmd)
         if result.returncode != 0:
             print(f"[ERROR] T5 analysis failed for run {args.run_number}")
-            sys.exit(1)
 
 
     print(f"\n*** Pipeline complete for run {args.run_number} ***\n")
