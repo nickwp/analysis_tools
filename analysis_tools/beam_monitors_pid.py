@@ -631,9 +631,16 @@ class BeamAnalysis:
                  
             #in case there is no pairs of t5 hits 
             event_q_t5_missing_tdc = (len(t5_bar_means) == 0)
+            
+            if require_t5 and event_q_t5_missing_tdc:
+                keep_event = False
+            
             # instead of using the mean, take the erliest hit. 
             t5_earliest_time = min(t5_bar_means) if t5_bar_means else None
             t5_more_than_one_hit = (len(t5_bar_means)>1)
+            
+            if t5_more_than_one_hit:
+                keep_event = False
             #the multiplicity shows how many bars are being hit, this could be a useful way to identify multiple particle events
 #             if t5_bar_multiplicity is not None:
             t5_bar_multiplicity.append(len(t5_bar_means))
@@ -867,6 +874,11 @@ class BeamAnalysis:
             self.df = self.df_all[self.df_all["evt_quality_bitmask"] == 0].copy()
         else:
             self.df = self.df_all[(self.df_all["evt_quality_bitmask"] == 0) | (self.df_all["evt_quality_bitmask"] == 4)].copy()
+            
+        #need to make sure that the digitisation issues are also included !!
+        self.df = self.df[self.df["digi_issues_bitmask"] == 0]
+        
+        print(len(self.df), sum(self.df_all["is_kept"]))
             
             
         print(f"\n \n When T5 requirement is {self.require_t5_hit} the fraction of events kept for analysis is {len(self.df)/len(self.df_all) * 100}% \n \n")
@@ -1210,6 +1222,54 @@ class BeamAnalysis:
             
         except:
             print("Please make the proton selection using tag_protons_TOF before checking the ACT35 left vs right plot to get the most of out it")
+            return 0
+        
+        
+        
+    def plot_ACT02_left_vs_right(self):
+        cut_line = self.eveto_cut
+        cut_line_label = "electron veto cut"
+        bins = np.linspace(0, 70, 100)
+        fig, ax = plt.subplots(figsize = (8, 6))
+        act_tagger_l = self.df["act0_l"]+self.df["act1_l"]+self.df["act2_l"]
+        act_tagger_r =self.df["act0_r"]+self.df["act1_r"]+self.df["act2_r"]
+        
+        h = ax.hist2d(act_tagger_l, act_tagger_r, bins = (bins, bins),norm=LogNorm())
+        fig.colorbar(h[3], ax=ax)
+        
+        if cut_line != None:
+                ax.plot(bins, cut_line - bins, "r--", label = f"{cut_line_label} cut line: ACT0-2 = {cut_line:.1f} PE")
+                ax.legend(fontsize = 14)
+        ax.set_xlabel("ACT0-2 left (PE)", fontsize = 18)
+        ax.set_ylabel("ACT0-2 right (PE)", fontsize = 18)
+        ax.set_title(f"Run {self.run_number} ({self.run_momentum} MeV/c)\nACT0-2 all particles", fontsize = 20)
+        self.pdf_global.savefig(fig)
+
+        plt.close()
+        
+        
+        try:
+            not_protons = ~self.df["is_proton"]
+            not_electrons = ~self.df["is_electron"]
+            not_protons = not_protons&(~self.df["is_deuteron"])
+
+            fig, ax = plt.subplots(figsize = (8, 6))
+            h = ax.hist2d(act_tagger_l[not_electrons&not_protons], act_tagger_r[not_electrons&not_protons], bins = (bins, bins), norm=LogNorm())
+            fig.colorbar(h[3], ax=ax)
+            
+            if cut_line != None:
+                ax.plot(bins, cut_line - bins, "r--", label = f"{cut_line_label} cut line: ACT0-2 = {cut_line:.1f} PE")
+                ax.legend(fontsize = 14)
+            ax.set_xlabel("ACT0-2 left (PE)", fontsize = 18)
+            ax.set_ylabel("ACT0-2 right (PE)", fontsize = 18)
+            ax.set_title(f"Run {self.run_number} ({self.run_momentum} MeV/c) \n ACT0-2 After eveto and p removal", fontsize = 20)
+            self.pdf_global.savefig(fig)
+
+            plt.close()
+            print("ACT02 left vs right plots have been made please check that they are sensible, protons should be in the bottom left corner")
+            
+        except:
+            print("Please make the proton selection using tag_protons_TOF before checking the ACT02 left vs right plot to get the most of out it")
             return 0
         
     def tag_protons_TOF(self):
@@ -3117,7 +3177,8 @@ class BeamAnalysis:
         ax.plot(spill_index, number_p_per_spill, "x", label = f"Protons  ({sum(self.df['is_proton'])})")
         ax.plot(spill_index, number_D_per_spill, "x", label = f"Deuterons  ({sum(self.df['is_deuteron'])})")
         ax.plot(spill_index, number_3He_per_spill, "x", label = f"Helium3  ({sum(self.df['is_helium3'])})")
-        ax.plot(spill_index_all, number_rejected_per_spill, "x", label = "Rejected triggers", color =  "darkgray")
+        n_rejected_triggers = len(self.df_all["tof"])-len(self.df["tof"])
+        ax.plot(spill_index_all, number_rejected_per_spill, "x", label = f"Rejected triggers ({n_rejected_triggers})", color =  "darkgray")
         ax.set_ylabel("Number of particles", fontsize = 20)
         ax.set_xlabel("Spill index", fontsize = 20)
         ax.legend(fontsize = 16)
@@ -3464,6 +3525,33 @@ class BeamAnalysis:
         plt.close()
         
         
+    def plot_event_quality_bitmask(self):
+        '''Plot a histogram of the event quality bitmask and the digitisation issues'''
+        fig, axes = plt.subplots(2, 1, figsize = (8, 6))
+        bins = np.arange(-0.5, 65.5, 1)
+        small_bins = np.arange(-0.5, 8, 1)
+        #I want to plot the tof of protons as a function of the registered T4 hit 
+        axes[0].hist(self.df_all["evt_quality_bitmask"], bins = bins,  histtype = "step", label = "Event quality bitmask")
+        axes[1].hist(self.df_all["digi_issues_bitmask"], bins = small_bins,  histtype = "step", label = "Digitization issue bitmask")
+        
+        for i in range(2):
+            axes[i].set_ylabel("Number of events", fontsize=20)
+            axes[i].grid()
+            axes[i].legend(fontsize=16)
+            axes[i].set_yscale("log")
+        
+        axes[0].set_xlabel("Event quality bitmask value", fontsize=16)
+        axes[1].set_xlabel("Digitization issue bitmask value", fontsize=16)
+
+        accepted_triggers = np.sum(self.df_all["is_kept"])
+        rejected_triggers = np.sum(np.where(self.df_all["is_kept"], 0, 1))
+        
+        axes[0].set_title(f"Run {self.run_number} ({self.run_momentum} MeV/c) - {accepted_triggers} accepted triggers; {rejected_triggers} rejected") 
+        fig.tight_layout()
+        self.pdf_global.savefig(fig)
+        plt.close()
+        
+   
         
         
         

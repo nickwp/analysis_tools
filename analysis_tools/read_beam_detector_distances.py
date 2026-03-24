@@ -15,10 +15,11 @@ import json
 
 class ReadBeamRunInfo:
     """Reads in the run information stored in the json file"""
-    def __init__(self):
+    def __init__(self, no_acts = False):
         #We have changed the place where the google sheet json is stored because of permission issues, will revert back soon, 
         with open("/eos/experiment/wcte/configuration/run_info/google_sheet_beam_data.json") as f:
             self.runs = json.load(f)
+        self.is_no_acts = no_acts
 
     def get_info_run_number(self, run_number):
 
@@ -36,34 +37,59 @@ class ReadBeamRunInfo:
         if target_run.get("act0")=="out":
             raise Exception(f"There is no ACT0 in run {run_number}")
 
-        n_eveto_group = float(target_run.get("act0"))
+        
 
-        if (target_run.get("act0") != target_run.get("act1") or target_run.get("act0")!= target_run.get("act2") or target_run.get("act1") != target_run.get("act2")):
-            raise Exception("The three upstream ACTs should have the same refractive index")
+        
 
         there_is_ACT5 = True
+        
+        #in case there are no ACT3, ACT0 values we set to the smallest refractive index 
+        try:
+            n_eveto_group = float(target_run.get("act0"))
+        except:
+            print(f"The ACT0 refractive index is {target_run.get("act0")}, instead we set n_eveto as 1.01")
+            n_eveto_group = 1.01
+            
 
-        n_tagger_group = float(target_run.get("act3"))
+        try:
+            n_tagger_group = float(target_run.get("act3"))
+        except:
+            print(f"The ACT3 refractive index is {target_run.get("act3")}, instead we set n_tagger as 1.01")
+            n_tagger_group = 1.01
+            
+            
+        
+            
+         
+        if self.is_no_acts == True:
+            print("Careful, we are in a minimum biais run, without downstream acts, we are over-ridding the usual requirements for ACT matching")
 
 
         if (target_run.get("act5")=="out") or (target_run.get("act5")=="OUT"):
             there_is_ACT5 = False
             
-        if (target_run.get("act3")=="out") or (target_run.get("act3")=="OUT"):
-            raise Exception(f"This beam analysis code is designed for runs where there are at least ACT3 and ACT4 in the beamline, in this run there are no ACT3, we are not runing the beam code for it")
-           
-        if (target_run.get("act4")=="out") or (target_run.get("act4")=="OUT"):
-            raise Exception(f"This beam analysis code is designed for runs where there are at least ACT3 and ACT4 in the beamline, in this run there are no ACT4, we are not runing the beam code for it")
-
+            
         if (target_run.get("lead_glass")=="IN"):
             raise Exception(f"This beam analysis code is designed for runs where the lead_glass is out of the beamline, in run {run_number} it is {target_run.get('lead_glass')}")
+            
+            
+        if self.is_no_acts == False:
+            
+            if (target_run.get("act0") != target_run.get("act1") or target_run.get("act0")!= target_run.get("act2") or target_run.get("act1") != target_run.get("act2")):
+                raise Exception("The three upstream ACTs should have the same refractive index")
+            
+            if (target_run.get("act3")=="out") or (target_run.get("act3")=="OUT"):
+                raise Exception(f"This beam analysis code is designed for runs where there are at least ACT3 and ACT4 in the beamline, in this run there are no ACT3, we are not runing the beam code for it")
 
-        if there_is_ACT5:
-            if (target_run.get("act3") != target_run.get("act4") or target_run.get("act3")!= target_run.get("act5") or target_run.get("act4") != target_run.get("act5")):
-                raise Exception("The three downstream ACTs should have the same refractive index")
-        else:
-            if (target_run.get("act3") != target_run.get("act4")):
-                raise Exception("The two downstream ACTs should have the same refractive index")
+            if (target_run.get("act4")=="out") or (target_run.get("act4")=="OUT"):
+                raise Exception(f"This beam analysis code is designed for runs where there are at least ACT3 and ACT4 in the beamline, in this run there are no ACT4, we are not runing the beam code for it")
+
+            if there_is_ACT5:
+                if (target_run.get("act3") != target_run.get("act4") or target_run.get("act3")!= target_run.get("act5") or target_run.get("act4") != target_run.get("act5")):
+                    raise Exception("The three downstream ACTs should have the same refractive index")
+            else:
+                if (target_run.get("act3") != target_run.get("act4")):
+                    raise Exception("The two downstream ACTs should have the same refractive index")
 
         beam_config = target_run.get("beam_config")
 

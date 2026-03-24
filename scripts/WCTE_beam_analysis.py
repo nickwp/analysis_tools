@@ -41,15 +41,26 @@ def parse_args():
         "--debug", action="store_true",
         help=f"Enable debug mode: limits to {DEBUG_N_EVENTS} events"
     )
+    
+    parser.add_argument(
+        "--no_acts", action="store_true",
+        help=f"Enable minimum biais mode: downstream ACTs do not have the same refractive index"
+    )
 
     return parser.parse_args()
 
 
 #Step 0: read  from the json file which run you want and its properties
 
+#set here if we require that having hits in T5 is required or not (typically set to TRUE for WCTE tank analyses)
+require_t5 = True
+
 args = parse_args()
 
-run_info = ReadBeamRunInfo()
+if args.no_acts:
+    run_info = ReadBeamRunInfo(no_acts = True)
+else:
+    run_info = ReadBeamRunInfo()
 
 #The beam config holds information about the colimator slit status, in case it's needed
 run_number, run_momentum, n_eveto_group, n_tagger_group, there_is_ACT5, beam_config = run_info.get_info_run_number(args.run_number)
@@ -81,7 +92,7 @@ for input_file in args.input_files:
 
     #Store into memory the number of events desired,
     # set require_t5 to False if you do not require that the particle reaches T5
-    ana.open_file(n_events, require_t5 = True, input_file = input_file, output_file=output_filename)
+    ana.open_file(n_events, require_t5 = require_t5, input_file = input_file, output_file=output_filename)
 
     #Step 2: Adjust the 1pe calibration: need to check the accuracy on the plots
     ana.adjust_1pe_calibration()
@@ -97,6 +108,9 @@ for input_file in args.input_files:
 
     #Step 5: check visually that the electron and proton removal makes sense in ACT35
     ana.plot_ACT35_left_vs_right()
+    
+    #Step 5: check visually that the electron and proton removal makes sense in ACT02
+    ana.plot_ACT02_left_vs_right()
 
     #Step 6: make the muon/pion separation, using the muon tagger in case 
     #at least 0.5% of muons and pions are above the cut line (at hiogh momentum). This is necessary in case the 
@@ -116,6 +130,9 @@ for input_file in args.input_files:
 
     #estimate the number of events per POT
     ana.plot_number_particles_per_POT()
+    
+    #Check the number of triggers that are rejected and why
+    ana.plot_event_quality_bitmask()
 
     #Step X: end_analysis, necessary to cleanly close files 
     ana.end_analysis()
