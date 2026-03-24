@@ -47,14 +47,14 @@ class ReadBeamRunInfo:
         try:
             n_eveto_group = float(target_run.get("act0"))
         except:
-            print(f"The ACT0 refractive index is {target_run.get("act0")}, instead we set n_eveto as 1.01")
+            print(f"The ACT0 refractive index is {target_run.get('act0')}, instead we set n_eveto as 1.01")
             n_eveto_group = 1.01
             
 
         try:
             n_tagger_group = float(target_run.get("act3"))
         except:
-            print(f"The ACT3 refractive index is {target_run.get("act3")}, instead we set n_tagger as 1.01")
+            print(f"The ACT3 refractive index is {target_run.get('act3')}, instead we set n_tagger as 1.01")
             n_tagger_group = 1.01
             
             
