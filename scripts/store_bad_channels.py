@@ -64,6 +64,30 @@ def mpmt_card89_all_channels_bad(caldb):
         caldb.post_bad_pmts(bad_pmts=bad_pmts, run_number=run_number)
 
 
+def mpmt_card17_all_channels_bad(caldb):
+    """Upload all channels (0-18) of mPMT card 17 as bad PMTs for
+    runs 1825, 1827, 1829, 1831.
+
+    Channels are mapped from card/channel -> slot*100+pos using PMTMapping
+    before being submitted to the database.
+    """
+    mapping = PMTMapping()
+
+    # Map card 17, channels 0-18 to global PMT IDs (slot*100 + position)
+    bad_pmts = []
+    for chan in range(19):  # channels 0 to 18 inclusive
+        slot, pmt_pos = mapping.get_slot_pmt_pos_from_card_pmt_chan(17, chan)
+        glb_pmt_id = 100 * slot + pmt_pos
+        bad_pmts.append(glb_pmt_id)
+    print(f"Mapped card 17 channels 0-18 -> global PMT IDs: {bad_pmts}")
+
+    target_runs = [1825, 1827, 1829, 1831]
+    
+    for run_number in target_runs:
+        print(f"Uploading {len(bad_pmts)} bad PMTs for run {run_number}...")
+        caldb.post_bad_pmts(bad_pmts=bad_pmts, run_number=run_number)
+
+
 if __name__ == "__main__":
     caldb = CalibrationDBInterface(credential_path="./.wctecaldb.analysistcredential")
 
@@ -71,6 +95,11 @@ if __name__ == "__main__":
     if False:
         # already uploaded
         mpmt_card89_all_channels_bad(caldb)
+
+    # ---- Upload: card 17 all channels, runs [1825, 1827, 1829, 1831] ----
+    if False:
+        # already uploaded
+        mpmt_card17_all_channels_bad(caldb)
 
     # ---- Query: verify uploaded bad PMTs for each HW run >= R2286 ----
     if True:
@@ -80,6 +109,17 @@ if __name__ == "__main__":
             pmt_state_data, revision_id, insert_time = caldb.get_calibration_constants(
                 run_number=run_number, time=0, calibration_name="pmt_state", official=1
             )
-            bad_pmt_ids = [entry["glb_pmt_id"] for entry in pmt_state_data]
-            status = "OK" if len(bad_pmt_ids) == 19 else f"UNEXPECTED COUNT ({len(bad_pmt_ids)})"
-            print(f"  Run {run_number}: {len(bad_pmt_ids)} bad PMTs [{status}] -> {sorted(bad_pmt_ids)}")
+            print("Run ", run_number, "pmt_state_data", pmt_state_data)
+            # bad_pmt_ids = [entry["glb_pmt_id"] for entry in pmt_state_data]
+            # status = "OK" if len(bad_pmt_ids) == 19 else f"UNEXPECTED COUNT ({len(bad_pmt_ids)})"
+            # print(f"  Run {run_number}: {len(bad_pmt_ids)} bad PMTs [{status}] -> {sorted(bad_pmt_ids)}")
+
+    # ---- Query: verify uploaded bad PMTs for runs [1825, 1827, 1829, 1831] ----
+    if True:
+        target_runs = [1825, 1827, 1829, 1831]
+        print(f"Checking {len(target_runs)} runs for card 17: {target_runs}")
+        for run_number in target_runs:
+            pmt_state_data, revision_id, insert_time = caldb.get_calibration_constants(
+                run_number=run_number, time=0, calibration_name="pmt_state", official=1
+            )
+            print("Run ", run_number, "pmt_state_data", pmt_state_data)
