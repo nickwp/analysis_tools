@@ -128,8 +128,10 @@ for input_file in args.input_files:
     #Taken as the std of the gaussian fit to the electron TOF
     ana.estimate_particle_momentum()
 
+    
     #estimate the number of events per POT
     ana.plot_number_particles_per_POT()
+    
     
     #Check the number of triggers that are rejected and why
     ana.plot_event_quality_bitmask()

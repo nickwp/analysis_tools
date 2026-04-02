@@ -3190,18 +3190,18 @@ class BeamAnalysis:
         ## Here read the number of POT per spill from the nxcals data 
         #The spills are always in order, we do not need to re-arrange them, in principle
         df_pot = None
-        if self.run_number == 1606:
-            df_pot = pd.read_csv(f"/eos/experiment/wcte/user_data/fiorenti/nxcals/pot/run_{self.run_number}_pot.csv", header = 0)
-            n_pot_per_trigger = np.array(df_pot["POT0"])
+#        if self.run_number == 1606:
+#            df_pot = pd.read_csv(f"/eos/experiment/wcte/user_data/fiorenti/nxcals/pot/run_{self.run_number}_pot.csv", header = 0)
+#            n_pot_per_trigger = np.array(df_pot["POT0"])
+#            n_pot_per_trigger = n_pot_per_trigger[0:len(spill_index)]
+#        else:
+        try:
+            df_pot = pd.read_csv(f"/eos/experiment/wcte/user_data/fiorenti/nxcals/pot/run_{self.run_number}_t9_pot.csv", header = 0)
+            n_pot_per_trigger = np.array(df_pot["POT"])
             n_pot_per_trigger = n_pot_per_trigger[0:len(spill_index)]
-        else:
-            try:
-                df_pot = pd.read_csv(f"/eos/experiment/wcte/user_data/fiorenti/nxcals/pot/run_{self.run_number}_t9_pot.csv", header = 0)
-                n_pot_per_trigger = np.array(df_pot["POT"])
-                n_pot_per_trigger = n_pot_per_trigger[0:len(spill_index)]
-                print(df_pot)
-            except:
-                return 0
+            print(df_pot)
+        except:
+            return 0
     
         
         
