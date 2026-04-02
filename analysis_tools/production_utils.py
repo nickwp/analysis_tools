@@ -117,6 +117,17 @@ def get_stable_mpmt_list_slow_control(run_data):
     return enabled_channels, channel_mask
 
 
+def get_channels_masked_by_problem(run_data, problem):
+    """Return the set of channels (in card-channel format) masked due to a specific problem.
+    Returns an empty set if 'mask_by_problem' doesn't exist or the problem isn't in it."""
+    if "mask_by_problem" not in run_data:
+        return set()
+    mask_dict = run_data["mask_by_problem"]
+    if problem not in mask_dict:
+        return set()
+    return set(mask_dict[problem])
+
+
 # ── PMT channel mapping ────────────────────────────────────────────────────────
 def slot_pos_from_card_chan_list(card_chan_list):
     """Convert a collection of card-channel identifiers to slot-position identifiers.
@@ -158,12 +169,14 @@ def get_slow_control_trigger_mask(run_number_str, trigger_times, run_data):
         if "dropped" in prob:
             bad_mask = np.logical_or(bad_mask,
                                      np.logical_and(trigger_times > start, trigger_times < end))
-        elif "no_data" in prob or "Status." in prob or "bad_flow" in prob:
+        elif "no_data" in prob or "Status." in prob or "bad_flow" in prob or "packetRate" in prob:
             pass  # channel-level issues — handled separately via the channel mask
         elif "crashed" in prob:
             bad_mask = np.logical_or(bad_mask, trigger_times > (run_data["end"] - 30))
         else:
-            raise ValueError(f"Unhandled slow control problem type: '{prob}'")
+            pass
+            #only crashes and dropped events should be masked
+            # raise ValueError(f"Unhandled slow control problem type: '{prob}'")
     return np.logical_not(bad_mask)
 
 
@@ -238,7 +251,7 @@ def get_run_info(run_number):
                 f"Run {run_number}: 'tagged' found in beam_config ('{beam_config}') "
                 f"but act0 is '{act0}' (expected 'out'). Check run configuration."
             )
-    elif act3 == "out" or act4 == "out" or act5 == "out":
+    elif act3 == "out" and act4 == "out" and act5 == "out":
         beam_analysis_type = "missing_act"
     else:
         beam_analysis_type = "normal"

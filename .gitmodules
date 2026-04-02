@@ -1,0 +1,3 @@
+[submodule "extern/T5_analysis"]
+	path = extern/T5_analysis
+	url = git@github.com:WCTE/T5_analysis.git

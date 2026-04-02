@@ -4,6 +4,7 @@ class HitMask(Flag):
     STABLE_CHANNEL = 0    
     NO_TIMING_CONSTANT = 1 
     SLOW_CONTROL_EXCLUDED = 2
+    MANUALLY_MASKED = 4
 
 class TriggerMask(Flag):
     STABLE_TRIGGER = 0    

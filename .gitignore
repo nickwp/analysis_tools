@@ -7,6 +7,10 @@
 *.npz
 *.json
 
+# ignore 
+cpp_merger/merge_production
+cpp_merger/merge_production.o
+
 # Ignore Python cache folders
 __pycache__/
 
@@ -17,6 +21,7 @@ analysis_tools.egg-info/
 
 #ignore credential files
 .wctecaldb.credential*
+.wctecaldb.analysistcredential
 
 #ignore setup shell scripts
 *.sh

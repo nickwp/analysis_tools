@@ -10,10 +10,12 @@ from analysis_tools.production_utils import (
     get_run_database_data,
     get_stable_mpmt_list_slow_control,
     slot_pos_from_card_chan_list,
+    get_channels_masked_by_problem,
     write_status_json,
 )
+from analysis_tools import CalibrationDBInterface
 
-SLOW_CONTROL_GOOD_RUN_LIST_PATH = '/eos/experiment/wcte/configuration/slow_control_summary/all_run_list.json'
+SLOW_CONTROL_GOOD_RUN_LIST_PATH = '/eos/experiment/wcte/configuration/slow_control_summary/all_run_list_v7.json'
 
 
 def mask_windows_missing_waveforms(good_channel_list, readout_window_events):
@@ -45,6 +47,45 @@ def mask_windows_missing_waveforms(good_channel_list, readout_window_events):
         
     return has_all_good_channels    
 
+def mask_windows_missing_waveforms_fast(good_channel_list, readout_window_events):
+    """
+    Vectorised version of the above
+    Inputs:
+    good_channel_list - list of integers in slot-position format (e.g. 203 for slot 2 position 3)
+    readout_window_events - awkward array with fields:
+        pmt_waveform_mpmt_slot_ids - awkward array of mPMT slot IDs for waveforms in each readout window
+        pmt_waveform_pmt_position_ids - awkward array of PMT position IDs for waveforms in each readout window
+    Returns:
+    has_all_good_channels - numpy bool array indicating whether one waveform for every good channel
+                            was present in the readout window
+    """
+    wf_mpmt_slot = readout_window_events["pmt_waveform_mpmt_slot_ids"]
+    wf_pmt_pos = readout_window_events["pmt_waveform_pmt_position_ids"]
+    wf_glbl_pmt_ids = (100 * wf_mpmt_slot) + wf_pmt_pos
+
+    n_windows = len(wf_glbl_pmt_ids)
+    counts = ak.num(wf_glbl_pmt_ids).to_numpy()
+    flat_ids = ak.flatten(wf_glbl_pmt_ids).to_numpy()
+    window_idx = np.repeat(np.arange(n_windows), counts)
+
+    # Filter to only hits from good channels
+    is_good = np.isin(flat_ids, good_channel_list)
+    good_flat_ids   = flat_ids[is_good]
+    good_window_idx = window_idx[is_good]
+
+    # Re-encode good channel IDs to compact 0..n_good-1 indices so the
+    # count matrix is n_windows x n_good — avoids large-matrix column selection
+    sorted_channels = np.sort(good_channel_list)
+    encoded_ids = np.searchsorted(sorted_channels, good_flat_ids) #gives the index of the good channel in the sorted list   
+
+    n_good = len(good_channel_list)
+    count_matrix = np.zeros((n_windows, n_good), dtype=np.int32)
+    np.add.at(count_matrix, (good_window_idx, encoded_ids), 1)
+
+    # A window is good iff every good channel appears exactly once
+    has_all_good_channels = np.all(count_matrix == 1, axis=1)
+
+    return has_all_good_channels
 
 if __name__ == "__main__":
     
@@ -109,6 +150,11 @@ if __name__ == "__main__":
     stable_channels_card_chan = enabled_channels - channel_mask
     #map slow control channel list in card and channel to the mpmt slot and position
     slow_control_stable_channels = slot_pos_from_card_chan_list(stable_channels_card_chan)
+
+    # query calibration database for manually-masked PMTs for this run
+    caldb = CalibrationDBInterface()
+    manually_masked_pmts = caldb.get_bad_pmts(args.run_number)
+    print(f"Found {len(manually_masked_pmts)} manually masked PMTs in calibration DB for run {args.run_number}")
     
     #loop over each file    
     first_file_pmts_with_timing_constant = None
@@ -130,7 +176,25 @@ if __name__ == "__main__":
                             raise Exception("PMTs with timing constants do not match between files in the same run")
                                         
                     #construct the good wcte pmt list
-                    good_wcte_pmts = (set(pmts_with_timing_constant) & set(slow_control_stable_channels))
+                    good_wcte_pmts = list((set(pmts_with_timing_constant) & set(slow_control_stable_channels)) - set(manually_masked_pmts))
+                    
+                    # Retrieve mask arrays for each specific problem
+                    problem_to_branch = {
+                        'bad current': 'slow_control_mask_bad_current',
+                        'bad pmt status': 'slow_control_mask_bad_pmt_status',
+                        'coarse counter reset': 'slow_control_mask_coarse_counter_reset_failed',
+                        'data rate too low': 'slow_control_mask_missing_monitoring_data',
+                        'no data': 'slow_control_mask_no_data',
+                        'packet rate': 'slow_control_mask_sporadic_monitoring_packets',
+                        'trip!': 'slow_control_mask_pmt_trip'
+                    }
+                    
+                    masked_by_problem_slot_pos = {}
+                    for problem_name, branch_name in problem_to_branch.items():
+                        card_chan_mask = get_channels_masked_by_problem(run_data, problem_name)
+                        #only consider channels that are enabled as disabled channels can be not in the detector
+                        card_chan_mask = card_chan_mask & enabled_channels
+                        masked_by_problem_slot_pos[branch_name] = slot_pos_from_card_chan_list(card_chan_mask)
                     
                     # Construct output path
                     base = os.path.splitext(os.path.basename(readout_window_file_name))[0]
@@ -142,9 +206,17 @@ if __name__ == "__main__":
                         config_tree = outfile.mktree("Configuration", {
                             "git_hash": "string",
                             "run_configuration": "string",
-                            "good_wcte_pmts": "var * int32", #the global pmt id (slot*100 + pos) of good pmts with timing constants and stable in slow control
-                            "wcte_pmts_with_timing_constant": "var * int32", #the global pmt id (slot*100 + pos) of pmts with timing constants
-                            "wcte_pmts_slow_control_stable": "var * int32", #the global pmt id (slot*100 + pos) of pmts stable in slow control
+                            "good_wcte_pmts": "var * int32",
+                            "wcte_pmts_with_timing_constant": "var * int32",
+                            "wcte_pmts_slow_control_stable": "var * int32",
+                            "slow_control_mask_bad_current": "var * int32",
+                            "slow_control_mask_bad_pmt_status": "var * int32",
+                            "slow_control_mask_coarse_counter_reset_failed": "var * int32",
+                            "slow_control_mask_missing_monitoring_data": "var * int32",
+                            "slow_control_mask_no_data": "var * int32",
+                            "slow_control_mask_sporadic_monitoring_packets": "var * int32",
+                            "slow_control_mask_pmt_trip": "var * int32",
+                            "manually_masked_pmts": "var * int32",
                             "slow_control_file_name": "string",
                             "slow_control_file_hash": "string",
                             "readout_window_file": "string",
@@ -153,14 +225,22 @@ if __name__ == "__main__":
                         })
                         print("There were",len(stable_channels_card_chan),"enabled channels not masked out")
                         print("There were",len(pmts_with_timing_constant),"channels with timing constants")
-                        print("In total there are",len(list(good_wcte_pmts)),"good channels with timing constants and stable in slow control")
+                        print("In total there are",len(good_wcte_pmts),"good channels with timing constants and stable in slow control")
                         
                         config_tree.extend({
                             "git_hash": [git_hash],
                             "run_configuration": [run_configuration],
-                            "good_wcte_pmts": ak.Array([list(good_wcte_pmts)]), 
+                            "good_wcte_pmts": ak.Array([good_wcte_pmts]),
                             "wcte_pmts_with_timing_constant": ak.Array([pmts_with_timing_constant]),
                             "wcte_pmts_slow_control_stable": ak.Array([slow_control_stable_channels]),
+                            "slow_control_mask_bad_current": ak.Array([masked_by_problem_slot_pos['slow_control_mask_bad_current']]),
+                            "slow_control_mask_bad_pmt_status": ak.Array([masked_by_problem_slot_pos['slow_control_mask_bad_pmt_status']]),
+                            "slow_control_mask_coarse_counter_reset_failed": ak.Array([masked_by_problem_slot_pos['slow_control_mask_coarse_counter_reset_failed']]),
+                            "slow_control_mask_missing_monitoring_data": ak.Array([masked_by_problem_slot_pos['slow_control_mask_missing_monitoring_data']]),
+                            "slow_control_mask_no_data": ak.Array([masked_by_problem_slot_pos['slow_control_mask_no_data']]),
+                            "slow_control_mask_sporadic_monitoring_packets": ak.Array([masked_by_problem_slot_pos['slow_control_mask_sporadic_monitoring_packets']]),
+                            "slow_control_mask_pmt_trip": ak.Array([masked_by_problem_slot_pos['slow_control_mask_pmt_trip']]),
+                            "manually_masked_pmts": ak.Array([list(manually_masked_pmts)]),
                             "slow_control_file_name": [good_run_list_path],
                             "slow_control_file_hash": [short_hash],
                             "readout_window_file": [readout_window_file_name],
@@ -175,6 +255,11 @@ if __name__ == "__main__":
                             "readout_number": "int32" #the unique readout window number for this event in the run
                         })
                         
+                        file_total_triggers = 0
+                        file_total_bad_triggers = 0
+                        file_total_hits = 0
+                        file_total_bad_hits = 0
+
                         #batch load over all entries to apply data quality flags to each trigger and hits
                         readout_window_tree_entries = readout_window_file["WCTEReadoutWindows"].num_entries 
                         calibrated_tree_entries = calibrated_file["CalibratedHits"].num_entries
@@ -209,7 +294,7 @@ if __name__ == "__main__":
                                 raise Exception("Batch start",start,"different events being compared between two files")
                             
                             #trigger level flags
-                            missing_waveforms_mask = mask_windows_missing_waveforms(good_wcte_pmts, readout_window_events)
+                            missing_waveforms_mask = mask_windows_missing_waveforms_fast(good_wcte_pmts, readout_window_events)
                             print("Checked",len(missing_waveforms_mask),"windows for missing waveforms", np.sum(~missing_waveforms_mask), "bad windows found")
                             
                             #make the trigger/window level bitmask 
@@ -224,11 +309,13 @@ if __name__ == "__main__":
                             
                             has_time_constant = np.isin(hit_global_id_flat,pmts_with_timing_constant)
                             is_sc_stable = np.isin(hit_global_id_flat,slow_control_stable_channels)
+                            is_manually_masked = np.isin(hit_global_id_flat,manually_masked_pmts)
                             
                             #make the hit level bitmask 
                             hit_mask_flat = np.zeros_like(hit_global_id_flat, dtype=np.int32)
                             hit_mask_flat |= ~has_time_constant * HitMask.NO_TIMING_CONSTANT.value
                             hit_mask_flat |= ~is_sc_stable * HitMask.SLOW_CONTROL_EXCLUDED.value
+                            hit_mask_flat |= is_manually_masked * HitMask.MANUALLY_MASKED.value
                             
                             hit_mask = ak.unflatten(hit_mask_flat,ak.num(hit_global_id))
                             
@@ -243,23 +330,36 @@ if __name__ == "__main__":
                             run_total_bad_triggers +=np.sum(trigger_mask!=0)
                             run_total_hits += len(hit_mask_flat)
                             run_total_bad_hits +=np.sum(hit_mask_flat!=0)
+                            
+                            file_total_triggers += len(trigger_mask)
+                            file_total_bad_triggers += np.sum(trigger_mask!=0)
+                            file_total_hits += len(hit_mask_flat)
+                            file_total_bad_hits += np.sum(hit_mask_flat!=0)
                         
                             print("Batch processed",np.sum(trigger_mask==0),"/",len(trigger_mask),"good triggers", f"{np.sum(trigger_mask==0)/len(trigger_mask):.2%}")
                             print("Processed",np.sum(hit_mask_flat==0),"/",len(hit_mask_flat),"good hits", f"{np.sum(hit_mask_flat==0)/len(hit_mask_flat):.2%}")
+                        
+                        bad_trig_pct = 100.0 * file_total_bad_triggers / file_total_triggers if file_total_triggers else 0.0
+                        bad_hit_pct  = 100.0 * file_total_bad_hits / file_total_hits if file_total_hits else 0.0
+                        
+                        metrics_tree = outfile.mktree("Metrics", {
+                            "n_good_pmt_channels": "int32",
+                            "n_triggers": "int32",
+                            "n_bad_triggers": "int32",
+                            "bad_trig_pct": "float64",
+                            "n_hits": "int32",
+                            "n_bad_hits": "int32",
+                            "bad_hit_pct": "float64"
+                        })
+                        metrics_tree.extend({
+                            "n_good_pmt_channels": [len(good_wcte_pmts)], 
+                            "n_triggers": [int(file_total_triggers)],
+                            "n_bad_triggers": [int(file_total_bad_triggers)],
+                            "bad_trig_pct": [float(bad_trig_pct)],
+                            "n_hits": [int(file_total_hits)],
+                            "n_bad_hits": [int(file_total_bad_hits)],
+                            "bad_hit_pct": [float(bad_hit_pct)]
+                        })
     
     print("Finished processing run", args.run_number, "across", len(args.input_files), "files")
-
-    bad_trig_pct = 100.0 * run_total_bad_triggers / run_total_triggers if run_total_triggers else 0.0
-    bad_hit_pct  = 100.0 * run_total_bad_hits  / run_total_hits  if run_total_hits  else 0.0
-
-    metrics = {
-        "n_good_pmt_channels": int(len(good_wcte_pmts)),
-        "n_triggers":          int(run_total_triggers),
-        "n_bad_triggers":      int(run_total_bad_triggers),
-        "bad_trig_pct":        round(bad_trig_pct, 2),
-        "n_hits":              int(run_total_hits),
-        "n_bad_hits":          int(run_total_bad_hits),
-        "bad_hit_pct":         round(bad_hit_pct, 2),
-    }
-    write_status_json(output_file_name, metrics)
     print("*** Hardware trigger DQ flags script complete ***")
