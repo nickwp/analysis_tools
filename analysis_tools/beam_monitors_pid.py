@@ -2445,6 +2445,11 @@ class BeamAnalysis:
             h_D_t0t4, _ = np.histogram(self.df["tof_t0t4_corr"][self.df["is_deuteron"]==1], bins = bins_tof_t0t4)
             popt_D_t0t4, pcov_t0t4 = fit_gaussian(h_D_t0t4, bin_centers_t0t4)
             
+            try:
+                popt_D_t0t4, pcov_t0t4 = fit_gaussian(h_D_t0t4, bin_centers_t0t4)
+            except: 
+                popt_D_t0t4 = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+            
             
         #Here, plot the TOF 
         fig, ax = plt.subplots(figsize = (8, 6))
