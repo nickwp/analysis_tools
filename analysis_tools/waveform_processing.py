@@ -275,7 +275,7 @@ class WaveformProcessingmPMT:
         # Step 4: Linear interpolation
         y1 = cf_samples[np.arange(n_wf), x1]
         y2 = cf_samples[np.arange(n_wf), x2]
-        y_ratio = y1 / (y1 - y2)
+        y_ratio = np.divide(y1, y1 - y2, out=np.zeros_like(y1), where=(y1 != y2))
         cf_time = x1 + y_ratio
         cf_time_ns = cf_time * time_base_ns
 
