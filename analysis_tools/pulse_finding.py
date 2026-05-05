@@ -161,12 +161,12 @@ def do_pulse_finding_fast(wf, debug=False):
     # surviving predecessor is definitely kept and within min_spacing.
     # Ambiguous peaks (only near removed peaks) survive to the next pass.
     min_spacing = 20
-    while True:
+    while True: # this loop only happens a few times at most, each time removing pulses occuring too close after another
         same_row = np.concatenate([[False], rows[1:] == rows[:-1]])
         gap = np.concatenate([[min_spacing + 1], cols[1:] - cols[:-1]])
         keep = ~same_row | (gap > min_spacing)
         remove = same_row & (gap <= min_spacing) & np.concatenate([[False], keep[:-1]])
-        if not remove.any():
+        if not remove.any(): # there are no more pulses found within the deadtime, so we can stop looking
             break
         rows = rows[~remove]
         cols = cols[~remove]
