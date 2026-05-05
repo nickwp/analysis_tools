@@ -20,13 +20,13 @@ class PMTMapping:
         unique_cards, _idx = np.unique(cards, return_index=True)
         unique_slots = slots[_idx]
 
-        self.slot_from_card = np.full(np.max(unique_cards) + 1, -1)
-        self.card_from_slot = np.full(np.max(unique_slots) + 1, -1)
+        self.slot_from_card = np.full(133, -1)
+        self.card_from_slot = np.full(133, -1)
         self.slot_from_card[unique_cards] = unique_slots
         self.card_from_slot[unique_slots] = unique_cards
 
-        self.position_from_card_channel = np.full([np.max(cards) + 1, np.max(channels) + 1], -1)
-        self.channel_from_slot_position = np.full([np.max(slots) + 1, np.max(positions) + 1], -1)
+        self.position_from_card_channel = np.full([133, 20], -1)
+        self.channel_from_slot_position = np.full([133, 20], -1)
         self.position_from_card_channel[cards, channels] = positions
         self.channel_from_slot_position[slots, positions] = channels
 
