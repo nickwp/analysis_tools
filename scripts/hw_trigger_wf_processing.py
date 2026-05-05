@@ -33,11 +33,11 @@ def do_hit_processing(waveforms, waveform_times, waveform_cards, waveform_channe
     # SECTION 1) do the pulse finding
     # ============================================================
     start_time = time.time()
-    hit_indices = do_pulse_finding_vect(waveforms) ##indices of the pulse in each waveform
-    hit_indices = ak.Array(hit_indices)
-    #filter the found hits to avoid either end of the samples
-    hit_indices = hit_indices[(hit_indices>=min_peak_sample) & (hit_indices<=max_peak_sample)]
-    
+    hit_wf_index, hit_indices_flat = do_pulse_finding_fast(waveform_channels)
+    good = (hit_indices >= min_peak_sample) & (hit_indices <= max_peak_sample)
+    hit_wf_index = hit_wf_index[good]
+    hit_indices_flat = hit_indices_flat[good]
+
     end_time = time.time()
     if verbose: print(f"Pulse finding took {end_time - start_time:.6f} seconds")
 
@@ -45,14 +45,6 @@ def do_hit_processing(waveforms, waveform_times, waveform_cards, waveform_channe
     # SECTION 2) now want to make an array of waveforms corresponding 
     #    to each hit with the info needed for CFD and charge calculation
     # ============================================================
-    #get the index of the waveform in each case that corresponds to the hit and flatten
-    row_wf_index = ak.local_index(hit_indices, axis=0) #returns the index of outer most array - the dimension of wfs
-    # essentially[ wf_0, wf_1 wf_2 ...] since this is what was fed into the do_pulse_finding_vect
-    hit_wf_index, _ = ak.broadcast_arrays(row_wf_index[:, None], hit_indices)
-    # now using broadcast_arrays we broadcast that shape onto hit_indices to produce an array like [[wf_1,wf_1],[wf_2],..] with n hits as second dimension
-    #now we flatten
-    hit_wf_index = ak.to_numpy(ak.flatten(hit_wf_index)) # index of the waveform for each hit
-    
     if len(hit_wf_index)==0:
         print("No hits found in waveform processing")
         found_hit_charge = np.array([], dtype=np.float64)
@@ -63,9 +55,7 @@ def do_hit_processing(waveforms, waveform_times, waveform_cards, waveform_channe
         hit_indices_flat = np.array([], dtype=np.int32)
         return found_hit_charge, found_hit_time, found_hit_card, found_hit_chan, hit_wf_index, hit_indices_flat 
     
-    hit_indices_flat = ak.to_numpy(ak.flatten(hit_indices)) # list of where the hits are in the waveform - flat one for each hit
-
-    #make a full array of the waveforms for each flat hit for later 
+    #make a full array of the waveforms for each flat hit for later
     each_hit_waveform = waveforms[hit_wf_index] #length of n hits the corresponding full waveform
     
     

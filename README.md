@@ -1,11 +1,14 @@
 # Installation
 Installation:
 
+```
 git clone <git repo location>
 cd analysis_tools
 pip install -e .
+```
 
-The -e flag allows you to edit the package 
+The `-e` flag allows you to edit the package 
+
 If using on lxplus you will need to setup this in a python virtual environment 
 
 ## Contribution Rules
@@ -16,22 +19,31 @@ Main branch on WCTE/analysis_tools is protected - please open a pull request (ei
 ##  WaveformProcessing
 
 Waveform processing contains a copy of the CFD used in the test stand repository
-WaveformProcessingTeststand.cfd_teststand_method() processes the CFD using that method returning 
+
+`WaveformProcessingTeststand.cfd_teststand_method()` processes the CFD using that method returning 
 the charge and the time for a pulse in that waveform - including non-linearity corrections 
 for both
 
 Additionally the same CFD and charge calculation method used online by the mPMT is included 
 in WaveformProcessingmPMT the versions to run on single waveforms and vectorised versions to run on arrays of waveforms are given 
 
-## do_pulse_finding and do_pulse_finding_vect
+## Pulse finding
 
-Finds pulses in the waveforms using the same method as run online on the mPMT. do_pulse_finding_vect is
-a vectorised version
+Finds pulses in the waveforms using the same method as run online on the mPMT.
+
+`do_pulse_finding` is a slower version processing one waveform at a time and returning a list of found pulses
+
+`do_pulse_finding_vect` is a mostly vectorised version, returning a list of lists of found pulses for each waveform
+
+`do_pulse_finding_fast` is a more optimised, fully-vectorised version that returns results as arrays of rows (waveforms)
+and columns (samples) of all pulses found in all waveforms
 
 ## CalibrationDBInterface
 
 Interfaces with the calibration database see more instruction here
+
 https://wcte.hyperk.ca/documents/calibration-db-apis/v1-api-endpoints-documentation
+
 Currently processed for the test database - to be updated when the production database 
 is ready. The authentication requires a credential text file ./.wctecaldb.credential 
 to be in the current working directory - more details in the database interface above
@@ -41,10 +53,17 @@ to be in the current working directory - more details in the database interface 
 PMTMapping is a class containing the mapping of the WCTE PMTs slot and position ids to the
 electronics channel and mPMT card ids and vice versa
 Usage:
+```
 mapping = PMTMapping()
-mapping.get_slot_pmt_pos_from_card_pmt_chan(card_id,pmt_channel) returns the slot and pmt position
+mapping.get_slot_pmt_pos_from_card_pmt_chan(card_id,pmt_channel)
+```
+ returns the slot and pmt position
 and 
-mapping.get_card_pmt_chan_from_slot_pmt_pos(slot_id,pmt_position) returns the card and channel
+```
+mapping.get_card_pmt_chan_from_slot_pmt_pos(slot_id,pmt_position)
+```
+returns the card and channel
+
 The mapping json is located in the package
 
 ## DetectorGeometry
