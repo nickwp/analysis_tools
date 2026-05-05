@@ -5,8 +5,8 @@ def do_pulse_finding(waveform, debug=False):
     # mimics the pulse finding on the mPMT, single sample at a time
 
     threshold = 20
-    fIntegralPreceding = 4;
-    fIntegralFollowing = 2;
+    fIntegralPreceding = 4
+    fIntegralFollowing = 2
 
     above_threshold = np.where(waveform[3:-2] > threshold)[0] + 3  # any samples over the threshold from 3 -> -2
     if debug:
@@ -66,8 +66,8 @@ def do_pulse_finding_vect(wf, debug=False):
 
     # 1. Thresholding
     threshold = 20
-    fIntegralPreceding = 4;
-    fIntegralFollowing = 2;
+    fIntegralPreceding = 4
+    fIntegralFollowing = 2
 
     amp_mask = wf > threshold
 
