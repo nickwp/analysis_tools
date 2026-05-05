@@ -39,3 +39,9 @@ class PMTMapping:
         card_id = self.card_from_slot[slot_id]
         channel_id = self.channel_from_slot_position[slot_id, pmt_pos]
         return card_id, channel_id
+
+    def get_card_from_slot(self, slot_id):
+        return self.card_from_slot[slot_id]
+
+    def get_slot_from_card(self, card_id):
+        return self.slot_from_card[card_id]
