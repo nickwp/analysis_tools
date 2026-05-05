@@ -117,4 +117,58 @@ def do_pulse_finding_vect(wf, debug=False):
         all_indices.append(pulses)
 
     return all_indices
-        
+
+
+def do_pulse_finding_fast(wf, debug=False):
+    # a more vectorised faster approach to the above function doing the same thing but on a vector of waveforms to
+    # process all weveforms simultaneously
+
+    # Ensure enough room for lookaround
+    wf_stripped = wf[:, 2:-2]
+
+    # 1. Thresholding
+    threshold = 20
+    fIntegralPreceding = 4
+    fIntegralFollowing = 2
+
+    amp_mask = wf_stripped > threshold
+
+    # 2. Local maxima condition (centered at idx)
+    local_max = amp_mask
+    # Conditions
+    local_max &= wf_stripped > wf[:, 1:-3]  # wf[i] > wf[i-1]
+    local_max &= wf_stripped >= wf[:, 3:-1]  # wf[i] >= wf[i+1]
+    local_max &= wf_stripped > wf[:, :-4]  # wf[i] > wf[i-2]
+    local_max &= wf_stripped > wf[:, 4:]  # wf[i] > wf[i+2]
+
+    # 3. Integral calculation (sum over [i-4:i+3], 7 bins)
+    width = fIntegralPreceding + fIntegralFollowing + 1
+    cumsum = np.cumsum(wf, axis=1)
+    integral = cumsum[:, width-1:]
+    integral[:, 1:] -= cumsum[:, :-width]
+
+    # 4. Apply integral condition
+    integral_mask = integral > threshold * 2
+
+    # 5. Final pulse candidate mask
+    pulse_mask = np.full_like(wf, False, dtype=bool)
+    pulse_mask[:, fIntegralPreceding:-fIntegralFollowing] = integral_mask
+    pulse_mask[:, 2:-2] &= local_max
+
+    # Flatten pulse_mask to sorted (row, col) pairs
+    rows, cols = np.where(pulse_mask)
+    # Spacing enforcement: each pass only removes peaks whose immediate
+    # surviving predecessor is definitely kept and within min_spacing.
+    # Ambiguous peaks (only near removed peaks) survive to the next pass.
+    min_spacing = 20
+    while True:
+        same_row = np.concatenate([[False], rows[1:] == rows[:-1]])
+        gap = np.concatenate([[min_spacing + 1], cols[1:] - cols[:-1]])
+        keep = ~same_row | (gap > min_spacing)
+        remove = same_row & (gap <= min_spacing) & np.concatenate([[False], keep[:-1]])
+        if not remove.any():
+            break
+        rows = rows[~remove]
+        cols = cols[~remove]
+
+    return rows, cols
