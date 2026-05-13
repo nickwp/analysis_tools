@@ -43,7 +43,7 @@ def do_pulse_finding(waveform, debug=False):
             print("Integral from", start, end, " is ", integral, waveform[start:end])
             # print("Integral from",start,end-1," is ", np.sum(waveform[start:end-1]))
 
-        if integral < threshold * 2:
+        if integral <= threshold * 2:
             continue
         integral_condition[i] = True
 
